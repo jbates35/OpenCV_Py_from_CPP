@@ -1,6 +1,6 @@
 # OpenCV_Py_from_CPP
 
-Programming side:
+## Programming side:
 
 1. Obviously, make your cpp and python program.
 
@@ -32,6 +32,7 @@ target_link_libraries(pyCpp1 ${PYTHON_LIBRARIES})
 $ sudo apt update && sudo apt install -y python3-dev
 ```
 
+
 FYI, my library ends up being "/usr/include/python3.10/Python3.h", in Ubuntu 22.04
 
 3.) Programming
@@ -41,7 +42,7 @@ Basic example (including CMakeText and code) can be found here: https://github.c
 
 Note. We need to send an OpenCV Mat, and get a series of Rects in return. It might not be particularly easy to get the rects as a return, what might be easier is to get an array of array of ints. (i.e., something like int returnVal[30][4])
 
-Note: This will likely have to be a class. The constructor of the class will run:
+*Note: This will likely have to be a class. The constructor of the class will run:*
 ```cpp
     //Initialize the Python Interpreter
     Py_Initialize();
@@ -50,12 +51,12 @@ Note: This will likely have to be a class. The constructor of the class will run
     PyRun_SimpleString("import cv2 as cv");
     PyRun_SimpleString("import numpy as np");
 ```
-and whatever else needs to be imported. There will probably have to be some adjustment for 
+*and whatever else needs to be imported. There will probably have to be some adjustment for *
 
 -----------
 
 
-Install side:
+## Install side:
 
 1.) Follow these steps (From https://coral.ai/docs/accelerator/get-started/):
 
@@ -78,4 +79,8 @@ $ python3 -m pip install opencv-python==4.5.5.64
 $ python3 -m pip install opencv-contrib-python==4.5.5.64 
 ```
 
+*Note, on Ubuntu at least, I had to install:*
+```bash
+$ sudo apt-get install libgl1-mesa-glx
+```
 
