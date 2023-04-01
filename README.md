@@ -6,9 +6,8 @@
 
 Example for CMAKE environment:
 
-```
+```cmake
 # Make a normal C++ build environment
-
 cmake_minimum_required(VERSION 3.10)
 project(pyCpp1)
 
@@ -51,7 +50,7 @@ Note. We need to send an OpenCV Mat, and get a series of Rects in return. It mig
     PyRun_SimpleString("import cv2 as cv");
     PyRun_SimpleString("import numpy as np");
 ```
-*and whatever else needs to be imported. There will probably have to be some adjustment for *
+*and whatever else needs to be imported. There will probably have to be some adjustment for*
 
 -----------
 
