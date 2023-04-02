@@ -16,6 +16,10 @@ def fishML(mat):
     
     for (x, y, w, h) in faces:
         returnRects.append([x, y, w, h])    
+        
+    #Check if empty list
+    if len(returnRects) == 0:
+        returnRects.append([-1, -1, -1, -1])
     
     # Return 0 to indicate success
     return returnRects
@@ -27,7 +31,7 @@ if __name__ == "__main__":
     key = ''
     
     abs_path = os.path.dirname(__file__)
-    rel_path = 'img/arnie.png'
+    rel_path = 'img/banana.png'
     full_path = os.path.join(abs_path, rel_path)
     
     img = cv.imread(full_path)
