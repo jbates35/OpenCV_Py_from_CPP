@@ -31,6 +31,9 @@ int main(int argc, char *argv[]) {
     //Make sure module could be found
     if (pModule == NULL) {
         PyErr_Print();
+
+        Py_DECREF(pModule);
+        Py_Finalize();
         return 1;
     }
 
@@ -40,6 +43,10 @@ int main(int argc, char *argv[]) {
     // Make sure function could be found
     if(PyErr_Occurred() || !PyCallable_Check(pFunc)) {
         PyErr_Print();
+
+        Py_DECREF(pFunc);
+        Py_DECREF(pModule);
+        Py_Finalize();
         return 1;
     }
 
@@ -59,6 +66,9 @@ int main(int argc, char *argv[]) {
     //Make sure return value is not null
     if (pReturn == NULL) {
         PyErr_Print();
+        Py_DECREF(pReturn);
+        Py_DECREF(pFunc);
+        Py_DECREF(pModule);
         return 1;
     }
 
