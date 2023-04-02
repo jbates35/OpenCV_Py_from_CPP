@@ -42,7 +42,7 @@ def fishML(mat):
         
     for obj in objs:        
         # Get the bounding box
-        ymin, xmin, ymax, xmax = obj.bbox
+        xmin, ymin, xmax, ymax = obj.bbox
         returnRects.append(([
             xmin, 
             ymin, 
