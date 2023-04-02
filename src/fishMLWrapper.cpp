@@ -63,7 +63,7 @@ int FishMLWrapper::init()
    return 1;
 }
 
-int FishMLWrapper::update(Mat &srcImg, vector<Rect> &ROIs)
+int FishMLWrapper::update(Mat &srcImg, vector<FishMLData> &objData)
 {
    if(srcImg.empty())
    {
@@ -96,7 +96,7 @@ int FishMLWrapper::update(Mat &srcImg, vector<Rect> &ROIs)
 
    //Parse return value to vector of Rects
    //First declare variables needed
-   vector<Rect> tempROIs;
+   vector<FishMLData> tempObjData;
    PyObject* pROI;
    PyObject* pVal;
 
@@ -119,9 +119,16 @@ int FishMLWrapper::update(Mat &srcImg, vector<Rect> &ROIs)
          rectVals.push_back(val);
       }
 
+      //Get ID
+      pVal = PyList_GetItem(pROI, 4);
+      int score = PyLong_AsLong(pVal);
+
       //Create Rect from vector and dump for later
       Rect ROI(rectVals[0], rectVals[1], rectVals[2], rectVals[3]);
-      tempROIs.push_back(ROI);
+
+      FishMLData data = { ROI, score };
+
+      tempObjData.push_back(data);
    }
 
    //Free memory of return value
@@ -130,16 +137,16 @@ int FishMLWrapper::update(Mat &srcImg, vector<Rect> &ROIs)
    Py_DECREF(pReturn);
 
    //Clear ROIs and store new ROIs
-   ROIs.clear();
+   objData.clear();
 
    //If no ROIs were found, return 0
-   if(tempROIs.size() == 1 && tempROIs[0].x == -1)
+   if(tempObjData.size() == 1 && tempObjData[0].ROI.x == -1)
    {
       return 0;
    }
 
    //Success, dump ROIs
-   ROIs = tempROIs;
+   objData = tempObjData;
 
    return 1;
 }

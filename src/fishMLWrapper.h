@@ -10,6 +10,13 @@
 using namespace std;
 using namespace cv;
 
+//Data structure for rect, id, score
+struct FishMLData
+{
+   Rect ROI;
+   int score;
+};
+
 class FishMLWrapper
 {
 public:
@@ -17,7 +24,7 @@ public:
    ~FishMLWrapper();
 
    int init();
-   int update(Mat &srcImg, vector<Rect> &ROIs);
+   int update(Mat &srcImg, vector<FishMLData> &objData);
 
 private:
    vector<string> _pyCommands;

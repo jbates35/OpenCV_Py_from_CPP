@@ -10,7 +10,7 @@ using namespace std;
 
 int main() {
     
-    vector<Rect> ROIs;
+    vector<FishMLData> objData;
 
     // Read image arnie.png
     Mat img = imread("img/arnie.png");
@@ -28,17 +28,23 @@ int main() {
     }
 
     // Connect to Python and find face
-    if(fishml.update(img, ROIs)<0) {
+    if(fishml.update(img, objData)<0) {
         cout << "Error updating fishML" << endl;
         return -1;
     }
 
     // Draw rectangles around ROIs
-    for(auto ROI : ROIs)
+    for(auto obj : objData)
     {
-        string rectPos = "Pos: <" + to_string(ROI.x) + ", " + to_string(ROI.y) + ">";
-        putText(img, rectPos, Point(ROI.x, ROI.y-10), FONT_HERSHEY_SIMPLEX, 0.3, Scalar(155, 255, 255), 1);
-        rectangle(img, ROI, Scalar(200, 90, 185), 2);
+        string rectPos = "Pos: <" + to_string(obj.ROI.x) + ", " + to_string(obj.ROI.y) + ">";
+        string score = "Score: " + to_string(obj.score);
+
+        // Draw rectangle
+        rectangle(img, obj.ROI, Scalar(200, 90, 185), 2);
+
+        // Put information
+        putText(img, score, Point(obj.ROI.x+5, obj.ROI.y+15), FONT_HERSHEY_SIMPLEX, 0.3, Scalar(155, 255, 255), 1);
+        putText(img, rectPos, Point(obj.ROI.x+5, obj.ROI.y+30), FONT_HERSHEY_SIMPLEX, 0.3, Scalar(155, 255, 255), 1);
     }
 
     // Display image

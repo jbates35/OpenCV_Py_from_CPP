@@ -13,11 +13,9 @@ from pycoral.utils.edgetpu import make_interpreter
 
 # Specify the TensorFlow model, labels, and image
 script_dir = pathlib.Path(__file__).parent.absolute()
-model_file = os.path.join(script_dir, 'tf2_ssd_mobilenet_v2_coco17_ptq_edgetpu.tflite')
-label_file = os.path.join(script_dir, 'coco_labels.txt')
+model_file = os.path.join(script_dir, 'ssd_mobilenet_v2_face_quant_postprocess_edgetpu.tflite')
 
 # Initialize the TF interpreter
-labels = read_label_file(label_file)
 interpreter = make_interpreter(model_file)
 interpreter.allocate_tensors()
 
@@ -38,19 +36,19 @@ def fishML(mat):
     # Print the result
     if not objs:
         print ("No objects detected")
-        return [tuple([-1, -1, -1, -1, -1, -1], "Nothing")]
+        returnRects.append([-1, -1, -1, -1, -1])
+        return returnRects
         
     for obj in objs:        
         # Get the bounding box
-        ymin, xmin, ymax, xmax = obj.bbox
-        returnRects.append(([
+        xmin, ymin, xmax, ymax = obj.bbox
+        returnRects.append([
             xmin, 
             ymin, 
             (xmax-xmin), 
             (ymax-ymin),
-            obj.id,
             obj.score
-            ], labels.get(obj.id, obj.id))) # NOTE : WHEN ACTUALLY USING THIS, REMOVE THE LABELS.GET() PART AND REMOVE TUPLE JUST MAKING IT A LIST
+            ]) 
             
     # Return the list of rois
     return returnRects
@@ -68,20 +66,18 @@ if __name__ == "__main__":
     img = cv.imread(full_path)
     img_clone = img.copy()
     
-    returnList = fishML(img_clone)
+    returnList = fishML(img)
     print(returnList)
         
     while(key != ord('q')):
         # Parse through the list of faces
-        for (face, label) in returnList:
-            x = face[0]
-            y = face[1]
-            w = face[2]
-            h = face[3]            
+        for objInfo in returnList:
+            x = objInfo[0]
+            y = objInfo[1]
+            w = objInfo[2]
+            h = objInfo[3]            
             cv.rectangle(img, (x, y), (x+w, y+h), (0, 255, 0), 2)
-            cv.putText(img, label, (x+10, y+10), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-            cv.putText(img, str(face[4]), (x+10, y+25), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-            cv.putText(img, str(face[5]), (x+10, y+40), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+            cv.putText(img, "Score: " + str(objInfo[4]), (x+10, y+40), cv.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 0), 2)
         
         # Display the image
         cv.imshow('Image', img)
