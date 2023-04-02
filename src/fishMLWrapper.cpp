@@ -100,46 +100,40 @@ int FishMLWrapper::update(Mat &srcImg, vector<Rect> &ROIs)
    //Iterate through return value
    for (Py_ssize_t i = 0; i < rSize; i++)
    {
-      //Store iterated item
+      //This stores the iterated items which will form the rects later
       pROI = PyList_GetItem(pReturn, i);
-
-      //Ensure iterated item is a list
-      if (!PyList_Check(pROI))
-      {
-         PyErr_Print();
-         Py_DECREF(pReturn);
-         return -1;
-      }
-
       vector<int> rectVals;
 
-      //Iterate through iterated item
+      //Parse through to get the rect coordinates
       for (Py_ssize_t j = 0; j < 4; j++)
       {
-         //Store iterated item
+         // Get object of value, convert it to a c++ style int, and store it in the vector
          pVal = PyList_GetItem(pROI, j);
-
-         //Ensure iterated item is an int
-         if (!PyLong_Check(pVal))
-         {
-            PyErr_Print();
-            Py_DECREF(pReturn);
-            return -1;
-         }
-
-         //Convert iterated item to int
          int val = PyLong_AsLong(pVal);
-
-         //Add iterated item to vector
          rectVals.push_back(val);
       }
 
-      //Create Rect from vector
+      //Create Rect from vector and dump for later
       Rect ROI(rectVals[0], rectVals[1], rectVals[2], rectVals[3]);
       tempROIs.push_back(ROI);
    }
 
+   //Free memory of return value
+   Py_DECREF(pROI);
+   Py_DECREF(pVal);
+   Py_DECREF(pReturn);
+
    //Clear ROIs and store new ROIs
    ROIs.clear();
+
+   //If no ROIs were found, return 0
+   if(tempROIs.size() == 1 && tempROIs[0].x == -1)
+   {
+      return 0;
+   }
+
+   //Success, dump ROIs
    ROIs = tempROIs;
+
+   return 1;
 }

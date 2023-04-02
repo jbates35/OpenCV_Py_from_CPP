@@ -13,7 +13,7 @@ int main() {
     vector<Rect> ROIs;
 
     // Read image arnie.png
-    Mat img = imread("img/arnie.png");
+    Mat img = imread("img/banana.png");
 
     // Check if image is empty
     if(img.empty()) {
@@ -37,7 +37,7 @@ int main() {
     for(auto ROI : ROIs)
     {
         string rectPos = "Pos: <" + to_string(ROI.x) + ", " + to_string(ROI.y) + ">";
-        putText(img, rectPos, Point(ROI.x, ROI.y-10), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(200, 90, 185), 1);
+        putText(img, rectPos, Point(ROI.x, ROI.y-10), FONT_HERSHEY_SIMPLEX, 0.3, Scalar(155, 255, 255), 1);
         rectangle(img, ROI, Scalar(200, 90, 185), 2);
     }
 
