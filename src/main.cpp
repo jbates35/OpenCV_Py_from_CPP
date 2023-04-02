@@ -11,7 +11,7 @@ using namespace cv;
 
 int main(int argc, char *argv[]) {
 
-    const cv::Mat srcimg = imread("img/arnie.png");
+    cv::Mat srcimg = imread("img/arnie.png");
     
     //Initialize the Python Interpreter
     Py_Initialize();
@@ -43,8 +43,6 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    npy_intp npy_send[3] = {srcimg.rows, srcimg.cols, srcimg.channels()};
-
     //Create arguments for function (mat)
     npy_intp dims[3] = { srcimg.rows, srcimg.cols, srcimg.channels() };
     PyObject* pImg = PyArray_SimpleNewFromData(srcimg.dims + 1, (npy_intp*) &dims, NPY_UINT8, srcimg.data);
@@ -55,15 +53,14 @@ int main(int argc, char *argv[]) {
     //Create return value pointer
     PyObject *pReturn = PyObject_CallObject(pFunc, pArgs);
 
+    Py_DECREF(pImg);
+    Py_DECREF(pArgs);
+
     //Make sure return value is not null
     if (pReturn == NULL) {
         PyErr_Print();
         return 1;
     }
-
-    
-    cout << "HERE?";
-    
 
     //Convert the return value to a vector of vector of ints
     vector<Rect> ROIs;
@@ -83,12 +80,9 @@ int main(int argc, char *argv[]) {
 
     //Free memory
     Py_DECREF(pReturn);
-    Py_DECREF(pImg);
-    Py_DECREF(pArgs);
     Py_DECREF(pFunc);
     Py_DECREF(pModule);
 
-    Py_Finalize();
 
     //Add rectangles to image
     for (auto rect : ROIs) 
