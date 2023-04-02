@@ -2,3 +2,10 @@
 .vscode
 build/*
 build
+py/__pycache__/*
+py/__pycache__
+py/cmake*
+py/CMake*
+py/Makefile
+py/ocvPyCpp
+py/ocvPyCpp/*

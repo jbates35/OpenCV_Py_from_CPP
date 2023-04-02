@@ -26,8 +26,7 @@ apt-get -y install libgl1-mesa-glx
 echo ">> Building program..."
 cd $DIR
 mkdir build
-cp -R $DIR/py/img $DIR/build
-cp haarcascade_frontalface_default.xml $DIR/build
+cp -R $DIR/py/* $DIR/build
 cd build
 cmake ..
 make

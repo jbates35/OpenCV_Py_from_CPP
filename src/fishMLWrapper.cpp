@@ -19,7 +19,14 @@ int FishMLWrapper::init()
       "import sys",
       "import cv2 as cv",
       "import numpy as np",
-      "face_cascade = cv.CascadeClassifier('haarcascade_frontalface_default.xml')"
+      "import os",
+      "from pycoral.adapters import common",
+      "from pycoral.adapters import detect",
+      "from pycoral.utils.edgetpu import make_interpreter",
+      "script_dir = pathlib.Path(__file__).parent.absolute()",
+      "model_file = os.path.join(script_dir, '" + _modelPath + "')",
+      "interpreter = make_interpreter(model_file)",
+      "interpreter.allocate_tensors()"
    };
 
    //Initialize python interpreter
@@ -121,7 +128,7 @@ int FishMLWrapper::update(Mat &srcImg, vector<FishMLData> &objData)
 
       //Get ID
       pVal = PyList_GetItem(pROI, 4);
-      int score = PyLong_AsLong(pVal);
+      double score = PyFloat_AsDouble(pVal);
 
       //Create Rect from vector and dump for later
       Rect ROI(rectVals[0], rectVals[1], rectVals[2], rectVals[3]);

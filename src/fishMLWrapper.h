@@ -10,11 +10,19 @@
 using namespace std;
 using namespace cv;
 
+//Definitions
+namespace fml
+{
+   const string _modelPath = "models/ssd_mobilenet_v2_face_quant_postprocess_edgetpu.tflite";
+}
+
+using namespace fml;
+
 //Data structure for rect, id, score
 struct FishMLData
 {
    Rect ROI;
-   int score;
+   double score;
 };
 
 class FishMLWrapper

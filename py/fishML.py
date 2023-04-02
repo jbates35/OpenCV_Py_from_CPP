@@ -3,9 +3,6 @@ import numpy as np
 import os
 import pathlib
 
-from PIL import Image
-from PIL import ImageDraw
-
 from pycoral.adapters import common
 from pycoral.adapters import detect
 from pycoral.utils.dataset import read_label_file
@@ -13,7 +10,7 @@ from pycoral.utils.edgetpu import make_interpreter
 
 # Specify the TensorFlow model, labels, and image
 script_dir = pathlib.Path(__file__).parent.absolute()
-model_file = os.path.join(script_dir, 'ssd_mobilenet_v2_face_quant_postprocess_edgetpu.tflite')
+model_file = os.path.join(script_dir, 'models/ssd_mobilenet_v2_face_quant_postprocess_edgetpu.tflite')
 
 # Initialize the TF interpreter
 interpreter = make_interpreter(model_file)
@@ -28,7 +25,7 @@ def fishML(mat):
     
     # Run an object detection
     interpreter.invoke()    
-    objs = detect.get_objects(interpreter, 0.3, scale)
+    objs = detect.get_objects(interpreter, 0.4, scale)
 
     # Create an empty list to store the rois
     returnRects = []
@@ -60,7 +57,7 @@ if __name__ == "__main__":
     key = ''
     
     abs_path = os.path.dirname(__file__)
-    rel_path = 'img/arnie.png'
+    rel_path = 'img/many_faces_4.jpg'
     full_path = os.path.join(abs_path, rel_path)
     
     img = cv.imread(full_path)
