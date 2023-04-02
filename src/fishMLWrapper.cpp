@@ -9,7 +9,7 @@ FishMLWrapper::~FishMLWrapper()
    //Clean up python interpreter
    Py_DECREF(_pFunc);
    Py_DECREF(_pModule);
-   Py_Finalize();
+   //Py_Finalize();
 }
 
 int FishMLWrapper::init()
@@ -65,6 +65,12 @@ int FishMLWrapper::init()
 
 int FishMLWrapper::update(Mat &srcImg, vector<Rect> &ROIs)
 {
+   if(srcImg.empty())
+   {
+      cout << "No source image for update" << endl;
+      return -1;
+   }
+
    //Convert Mat to numpy array
    npy_intp dims[3] = { srcImg. rows, srcImg.cols, srcImg.channels() };
    PyObject* pImg = PyArray_SimpleNewFromData(srcImg.dims + 1, (npy_intp*) & dims, NPY_UINT8, srcImg.data);

@@ -13,7 +13,7 @@ int main() {
     vector<Rect> ROIs;
 
     // Read image arnie.png
-    Mat img = imread("img/banana.png");
+    Mat img = imread("img/arnie.png");
 
     // Check if image is empty
     if(img.empty()) {
