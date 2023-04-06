@@ -7,8 +7,13 @@ FishMLWrapper::FishMLWrapper()
 FishMLWrapper::~FishMLWrapper()
 {
    //Clean up python interpreter
-   Py_DECREF(_pFunc);
-   Py_DECREF(_pModule);
+   Py_XDECREF(_pROI);
+   Py_XDECREF(_pVal);
+   Py_XDECREF(_pArgs);
+   Py_XDECREF(_pReturn);
+   Py_XDECREF(_pImg);
+   Py_XDECREF(_pFunc);
+   Py_XDECREF(_pModule);
    Py_Finalize();
 }
 
@@ -73,55 +78,48 @@ int FishMLWrapper::update(Mat &srcImg, vector<FishMLData> &objData)
 
    //Convert Mat to numpy array
    npy_intp dims[3] = { srcImg. rows, srcImg.cols, srcImg.channels() };
-   PyObject* pImg = PyArray_SimpleNewFromData(srcImg.dims + 1, (npy_intp*) & dims, NPY_UINT8, srcImg.data);
+   _pImg = PyArray_SimpleNewFromData(srcImg.dims + 1, (npy_intp*) & dims, NPY_UINT8, srcImg.data);
 
    //Create python argument list
-   PyObject* pArgs = PyTuple_New(1);
-   PyTuple_SetItem(pArgs, 0, pImg);
+   _pArgs = PyTuple_New(1);
+   PyTuple_SetItem(_pArgs, 0, _pImg);
 
    //Create return value pointer
-   PyObject* pReturn = PyObject_CallObject(_pFunc, pArgs);
-
-   //Free memory of arguments
-   Py_DECREF(pImg);
-   Py_DECREF(pArgs);
+   _pReturn = PyObject_CallObject(_pFunc, _pArgs);
 
    //Make sure there's a return value
-   if (pReturn == NULL)
+   if (_pReturn == NULL)
    {
       PyErr_Print();
-      Py_DECREF(pReturn);
       return -1;
    }
 
    //Parse return value to vector of Rects
    //First declare variables needed
    vector<FishMLData> tempObjData;
-   PyObject* pROI;
-   PyObject* pVal;
 
    //Get size of return value
-   Py_ssize_t rSize = PyList_Size(pReturn);
+   Py_ssize_t rSize = PyList_Size(_pReturn);
 
    //Iterate through return value
    for (Py_ssize_t i = 0; i < rSize; i++)
    {
       //This stores the iterated items which will form the rects later
-      pROI = PyList_GetItem(pReturn, i);
+      _pROI = PyList_GetItem(_pReturn, i);
       vector<int> rectVals;
 
       //Parse through to get the rect coordinates
       for (Py_ssize_t j = 0; j < 4; j++)
       {
          // Get object of value, convert it to a c++ style int, and store it in the vector
-         pVal = PyList_GetItem(pROI, j);
-         int val = PyLong_AsLong(pVal);
+         _pVal = PyList_GetItem(_pROI, j);
+         int val = PyLong_AsLong(_pVal);
          rectVals.push_back(val);
       }
 
       //Get ID
-      pVal = PyList_GetItem(pROI, 4);
-      double score = PyFloat_AsDouble(pVal);
+      _pVal = PyList_GetItem(_pROI, 4);
+      double score = PyFloat_AsDouble(_pVal);
 
       //Create Rect from vector and dump for later
       Rect ROI(rectVals[0], rectVals[1], rectVals[2], rectVals[3]);
@@ -131,10 +129,6 @@ int FishMLWrapper::update(Mat &srcImg, vector<FishMLData> &objData)
       tempObjData.push_back(data);
    }
 
-   //Free memory of return value
-   Py_DECREF(pROI);
-   Py_DECREF(pVal);
-   Py_DECREF(pReturn);
 
    //Clear ROIs and store new ROIs
    objData.clear();

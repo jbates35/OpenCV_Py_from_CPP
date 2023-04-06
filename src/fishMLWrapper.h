@@ -38,4 +38,10 @@ private:
    vector<string> _pyCommands;
    PyObject* _pModule;
    PyObject* _pFunc;
+   PyObject* _pReturn;
+   PyObject* _pROI;
+   PyObject* _pArgs;
+   PyObject* _pVal;
+   PyObject* _pImg;
+
 };
