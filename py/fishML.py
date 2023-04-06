@@ -3,7 +3,7 @@ import numpy as np
 import os
 
 # Load the pre-trained Haar cascade for face detection
-face_cascade = cv.CascadeClassifier('haarcascade_frontalface_default.xml')
+face_cascade = cv.CascadeClassifier('models/haarcascade_frontalface_default.xml')
     
 def fishML(mat):    
     # Convert the image to grayscale
@@ -29,9 +29,7 @@ if __name__ == "__main__":
     abs_path = os.path.dirname(__file__)
     rel_path = 'img/arnie_large.png'
     full_path = os.path.join(abs_path, rel_path)
-    
-    print(full_path)
-    
+        
     img = cv.imread(full_path)
     
     returnList = fishML(img)
