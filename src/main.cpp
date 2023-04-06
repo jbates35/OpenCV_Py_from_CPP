@@ -37,22 +37,28 @@ int main() {
     
     double imgTimer = millis();
 
+    int numberOfIterations = 0;
     int i = 0;
-    int i_max = imgPaths.size();
+    int iMax = imgPaths.size();
 
     while(returnKey != 27)
     {
+        numberOfIterations++;
+        cout << "Number of iterations: " << numberOfIterations << endl;
+        cout << "Current image " << imgPaths[i] << endl;
+
         if (returnKey == 27) {
             break;
         }
 
         // Increment image every 500ms
         if(millis() - imgTimer > 1500) {
+            cout << "Increasing image" << endl;
             imgTimer = millis();
 
             i++;
 
-            if(i >= i_max) {
+            if(i >= iMax) {
                 i = 0;
             }
         }
@@ -76,8 +82,6 @@ int main() {
             cout << "Error updating fishML" << endl;
             return -1;
         }
-
-        cout << "Time to update fishML for image " + to_string(++i) + ": " << millis()-timer << "ms" << endl;
 
         //Write the rectangle to screen for test
         cout << "Number of rectangles: " << objData.size() << endl;
