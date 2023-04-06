@@ -28,7 +28,7 @@ int main() {
 
     vector<Mat> imgs;
 
-    Mat img = imread("img/many_faces_4.jpg");
+    Mat img = imread("img/arnie_large.png");
     imgs.push_back(img.clone());
     int i = 0;
 

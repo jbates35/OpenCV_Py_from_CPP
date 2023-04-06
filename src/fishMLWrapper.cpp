@@ -9,24 +9,17 @@ FishMLWrapper::~FishMLWrapper()
    //Clean up python interpreter
    Py_DECREF(_pFunc);
    Py_DECREF(_pModule);
-   //Py_Finalize();
+   Py_Finalize();
 }
 
 int FishMLWrapper::init()
 {
    //Store needed python imports/commands to be parsed through
    _pyCommands = {
-      "import sys",
       "import cv2 as cv",
       "import numpy as np",
       "import os",
-      "from pycoral.adapters import common",
-      "from pycoral.adapters import detect",
-      "from pycoral.utils.edgetpu import make_interpreter",
-      "script_dir = pathlib.Path(__file__).parent.absolute()",
-      "model_file = os.path.join(script_dir, '" + _modelPath + "')",
-      "interpreter = make_interpreter(model_file)",
-      "interpreter.allocate_tensors()"
+      "face_cascade = cv.CascadeClassifier('haarcascade_frontalface_default.xml')"
    };
 
    //Initialize python interpreter

@@ -1,53 +1,23 @@
 import cv2 as cv
 import numpy as np
 import os
-import pathlib
 
-from pycoral.adapters import common
-from pycoral.adapters import detect
-from pycoral.utils.dataset import read_label_file
-from pycoral.utils.edgetpu import make_interpreter
-
-# Specify the TensorFlow model, labels, and image
-script_dir = pathlib.Path(__file__).parent.absolute()
-model_file = os.path.join(script_dir, 'models/ssd_mobilenet_v2_face_quant_postprocess_edgetpu.tflite')
-
-# Initialize the TF interpreter
-interpreter = make_interpreter(model_file)
-interpreter.allocate_tensors()
-
+# Load the pre-trained Haar cascade for face detection
+face_cascade = cv.CascadeClassifier('haarcascade_frontalface_default.xml')
     
-def fishML(mat):      
-    # Convert the image to RGB format and resize it
-    mat = cv.cvtColor(mat, cv.COLOR_BGR2RGB)
-    size = common.input_size(interpreter)
-    _, scale = common.set_resized_input(interpreter, mat.shape[:2], lambda size: cv.resize(mat, size))
+def fishML(mat):    
+    # Convert the image to grayscale
+    gray = cv.cvtColor(mat, cv.COLOR_BGR2GRAY)
     
-    # Run an object detection
-    interpreter.invoke()    
-    objs = detect.get_objects(interpreter, 0.4, scale)
-
-    # Create an empty list to store the rois
+    # Detect objects in the image using the face cascade classifier
+    faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))    
+    
     returnRects = []
     
-    # Print the result
-    if not objs:
-        print ("No objects detected")
-        returnRects.append([-1, -1, -1, -1, -1])
-        return returnRects
-        
-    for obj in objs:        
-        # Get the bounding box
-        xmin, ymin, xmax, ymax = obj.bbox
-        returnRects.append([
-            xmin, 
-            ymin, 
-            (xmax-xmin), 
-            (ymax-ymin),
-            obj.score
-            ]) 
-            
-    # Return the list of rois
+    for (x, y, w, h) in faces:
+        returnRects.append([x, y, w, h, 0.15])    
+    
+    # Return 0 to indicate success
     return returnRects
     
 
@@ -57,24 +27,24 @@ if __name__ == "__main__":
     key = ''
     
     abs_path = os.path.dirname(__file__)
-    rel_path = 'img/many_faces_4.jpg'
+    rel_path = 'img/arnie_large.png'
     full_path = os.path.join(abs_path, rel_path)
     
+    print(full_path)
+    
     img = cv.imread(full_path)
-    img_clone = img.copy()
     
     returnList = fishML(img)
     print(returnList)
         
     while(key != ord('q')):
         # Parse through the list of faces
-        for objInfo in returnList:
-            x = objInfo[0]
-            y = objInfo[1]
-            w = objInfo[2]
-            h = objInfo[3]            
+        for face in returnList:
+            x = face[0]
+            y = face[1]
+            w = face[2]
+            h = face[3]            
             cv.rectangle(img, (x, y), (x+w, y+h), (0, 255, 0), 2)
-            cv.putText(img, "Score: " + str(objInfo[4]), (x+10, y+40), cv.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 0), 2)
         
         # Display the image
         cv.imshow('Image', img)
