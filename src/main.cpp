@@ -26,7 +26,11 @@ int main() {
 
     cout << "Time to initialize fishML: " << millis()-timer << "ms" << endl;
 
-    vector<Mat> imgs;
+    vector<string> imgPaths = {
+        "img/arnie_large.png",
+        "img/arnie_large_2.png",
+        "img/arnie_large_3.png"
+    };
 
     Mat img = imread("img/arnie_large.png");
     imgs.push_back(img.clone());
