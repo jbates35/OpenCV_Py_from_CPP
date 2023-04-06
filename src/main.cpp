@@ -30,13 +30,6 @@ int main() {
 
     Mat img = imread("img/many_faces_4.jpg");
     imgs.push_back(img.clone());
-
-    // img = imread("img/arnie_xsmall.png");
-    // imgs.push_back(img.clone());
-
-    // img = imread("img/arnie_large.png");
-    // imgs.push_back(img.clone());
-    
     int i = 0;
 
     for(Mat img : imgs)
