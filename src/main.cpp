@@ -32,12 +32,33 @@ int main() {
         "img/arnie_large_3.png"
     };
 
-    Mat img = imread("img/arnie_large.png");
-    imgs.push_back(img.clone());
-    int i = 0;
+    Mat img;
+    char returnKey=0;
+    
+    double imgTimer = millis();
 
-    for(Mat img : imgs)
+    int i = 0;
+    int i_max = imgPaths.size();
+
+    while(returnKey != 27)
     {
+        if (returnKey == 27) {
+            break;
+        }
+
+        // Increment image every 500ms
+        if(millis() - imgTimer > 400) {
+            imgTimer = millis();
+
+            i++;
+
+            if(i >= i_max) {
+                i = 0;
+            }
+        }
+
+        img = imread(imgPaths[i]);
+
         // Express size of image
         cout << "Image width = " << img.size().width << endl;
         cout << "Image height = " << img.size().height << endl;
@@ -50,35 +71,38 @@ int main() {
 
         timer = millis();
 
-        // Connect to Python and find face
-        if(fishml.update(img, objData)<0) {
-            cout << "Error updating fishML" << endl;
-            return -1;
-        }
+        // // Connect to Python and find face
+        // if(fishml.update(img, objData)<0) {
+        //     cout << "Error updating fishML" << endl;
+        //     return -1;
+        // }
 
-        cout << "Time to update fishML for image " + to_string(++i) + ": " << millis()-timer << "ms" << endl;
+        // cout << "Time to update fishML for image " + to_string(++i) + ": " << millis()-timer << "ms" << endl;
 
-        // Draw rectangles around ROIs
-        for(auto obj : objData)
-        {
-            string rectPos = "Pos: <" + to_string(obj.ROI.x) + ", " + to_string(obj.ROI.y) + ">";
-            string score = "Score: " + to_string(obj.score);
+        // //Write the rectangle to screen for test
+        // cout << "Number of rectangles: " << objData.size() << endl;
 
-            // Draw rectangle
-            rectangle(img, obj.ROI, Scalar(200, 90, 185), 2);
+        // // Draw rectangles around ROIs
+        // for(auto obj : objData)
+        // {
+        //     string rectPos = "Pos: <" + to_string(obj.ROI.x) + ", " + to_string(obj.ROI.y) + ">";
+        //     string score = "Score: " + to_string(obj.score);
 
-            // Put information
-            putText(img, score, Point(obj.ROI.x+5, obj.ROI.y+15), FONT_HERSHEY_SIMPLEX, 0.3, Scalar(155, 255, 255), 1);
-            putText(img, rectPos, Point(obj.ROI.x+5, obj.ROI.y+30), FONT_HERSHEY_SIMPLEX, 0.3, Scalar(155, 255, 255), 1);
-        }
-    }
+        //     cout << rectPos << endl;
+        //     cout << score << endl;
 
-    for(Mat img : imgs)
-    {
-        // Show image
+        //     // Draw rectangle
+        //     rectangle(img, obj.ROI, Scalar(200, 90, 185), 2);
+
+        //     // Put information
+        //     putText(img, score, Point(obj.ROI.x+5, obj.ROI.y+15), FONT_HERSHEY_SIMPLEX, 0.3, Scalar(155, 255, 255), 1);
+        //     putText(img, rectPos, Point(obj.ROI.x+5, obj.ROI.y+30), FONT_HERSHEY_SIMPLEX, 0.3, Scalar(155, 255, 255), 1);
+        // }
+
+        // Display image
         imshow("Image", img);
+        returnKey = waitKey(100);
+        
     }
-    
-    waitKey(0);
     return 0;
 }
