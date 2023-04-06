@@ -7,7 +7,7 @@ project(ocvPyCpp)
 
 # include directories for src files
 include_directories(src)
-include_directories(/home/dev/.local/lib/python3.10/site-packages/numpy/core/include/)
+include_directories(/home/jbates/.local/lib/python3.10/site-packages/numpy/core/include/)
 
 # Find the Python interpreter and libraries
 find_package(PythonLibs REQUIRED)
