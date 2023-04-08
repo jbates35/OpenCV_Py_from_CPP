@@ -4,7 +4,6 @@
 
 #include "fishMLWrapper.h"
 
-FishMLWrapper fishml;
 
 using namespace std;
 
@@ -13,7 +12,9 @@ double millis() {
 }
 
 int main() {
-    
+
+
+    FishMLWrapper fishml;
     vector<FishMLData> objData;
 
     double timer = millis();
@@ -41,7 +42,7 @@ int main() {
     int i = 0;
     int iMax = imgPaths.size();
 
-    while(returnKey != 27)
+    while(returnKey != 27 && numberOfIterations < 2)
     {
         numberOfIterations++;
         cout << "Number of iterations: " << numberOfIterations << endl;
@@ -51,17 +52,23 @@ int main() {
             break;
         }
 
-        // Increment image every 500ms
-        if(millis() - imgTimer > 1500) {
-            cout << "Increasing image" << endl;
-            imgTimer = millis();
-
-            i++;
-
-            if(i >= iMax) {
-                i = 0;
-            }
+        i++;
+        if(i >= iMax) {
+            i = 0;
         }
+
+        // Increment image every 500ms
+        // if(millis() - imgTimer > 1500) {
+        //     cout << "Increasing image" << endl;
+        //     imgTimer = millis();
+
+        //     i++;
+
+        //     if(i >= iMax) {
+        //         i = 0;
+        //     }
+        // }
+
 
         img = imread(imgPaths[i]);
 
@@ -103,10 +110,11 @@ int main() {
             putText(img, rectPos, Point(obj.ROI.x+5, obj.ROI.y+30), FONT_HERSHEY_SIMPLEX, 0.3, Scalar(155, 255, 255), 1);
         }
 
-        // Display image
-        imshow("Image", img);
-        returnKey = waitKey(100);
+        // // Display image
+        // imshow("Image", img);
+        // returnKey = waitKey(100);
         
     }
+    destroyAllWindows();
     return 0;
 }

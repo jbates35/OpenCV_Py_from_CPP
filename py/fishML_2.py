@@ -10,10 +10,10 @@ import numpy as np
 # model = tf.saved_model.load('/Users/tomkuzma/Downloads/faster_rcnn_resnet152_v1_640x640_1')
 # model = tf.saved_model.load('/Users/tomkuzma/Downloads/ssd_mobilenet_v2_fpnlite_320x320_1')
 # model = tf.saved_model.load('/Users/tomkuzma/Downloads/content/inference_graph/saved_model')
-model = tf.saved_model.load('/Users/tomkuzma/Downloads/content 2/inference_graph/saved_model') # this one works best
+model = tf.saved_model.load('inference_graph/saved_model') # this one works best
 # model = tf.saved_model.load('/Users/tomkuzma/Downloads/content 3/inference_graph/saved_model')
 # model = tf.saved_model.load('/Users/tomkuzma/Downloads/mobilenet_v1/inference_graph/saved_model')
-label_map_path = '/Users/tomkuzma/Downloads/mscoco_label_map.pbtxt.txt'
+label_map_path = 'mscoco_label_map.pbtxt.txt'
 
 
 # Parse the label map file
