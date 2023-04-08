@@ -1,6 +1,7 @@
 import cv2
 import tensorflow as tf
 import numpy as np
+import time
 
 # Load the pre-trained object detection model
 # this is the one that works best
@@ -10,11 +11,12 @@ import numpy as np
 # model = tf.saved_model.load('/Users/tomkuzma/Downloads/faster_rcnn_resnet152_v1_640x640_1')
 # model = tf.saved_model.load('/Users/tomkuzma/Downloads/ssd_mobilenet_v2_fpnlite_320x320_1')
 # model = tf.saved_model.load('/Users/tomkuzma/Downloads/content/inference_graph/saved_model')
-model = tf.saved_model.load('inference_graph/saved_model') # this one works best
+model = tf.saved_model.load('/home/jbates/fishCenS/py_with_cpp/OpenCV_Py_from_CPP/py/models/fishModel1') # this one works best
 # model = tf.saved_model.load('/Users/tomkuzma/Downloads/content 3/inference_graph/saved_model')
 # model = tf.saved_model.load('/Users/tomkuzma/Downloads/mobilenet_v1/inference_graph/saved_model')
-label_map_path = 'mscoco_label_map.pbtxt.txt'
+label_map_path = '/home/jbates/fishCenS/py_with_cpp/OpenCV_Py_from_CPP/py/labels/mscoco_label_map.pbtxt.txt'
 
+testing = True
 
 # Parse the label map file
 with open(label_map_path, 'r') as f:
@@ -50,7 +52,7 @@ for line in lines:
 # cap = cv2.VideoCapture('/Users/tomkuzma/Documents/BCIT/Term_8/ELEX 7890 - Capstone/hatcheryVid_Apr5/2023_04_05_10h58m22s.avi')
 # cap = cv2.VideoCapture('/Users/tomkuzma/Documents/BCIT/Term_8/ELEX 7890 - Capstone/hatcheryVid_Apr5/2023_04_05_10h48m38s.mov')
 # cap = cv2.VideoCapture('/Users/tomkuzma/Documents/BCIT/Term_8/ELEX 7890 - Capstone/hatcheryVid_Apr5/2023_04_05_10h36m00s.avi')
-cap = cv2.VideoCapture('/Users/tomkuzma/Documents/BCIT/Term_8/ELEX 7890 - Capstone/Test Footage/Trimmed/fish_dark_trimmed_1_small.mov')
+cap = cv2.VideoCapture('/home/jbates/fishCenS/py_with_cpp/OpenCV_Py_from_CPP/py/vid/fishVid_Dark1.mp4')
 # cap = cv2.VideoCapture('/Users/tomkuzma/Documents/BCIT/Term_8/ELEX 7890 - Capstone/Test Footage/Trimmed/fish_dark_trimmed_2.mov')
 # cap = cv2.VideoCapture('/Users/tomkuzma/Documents/BCIT/Term_8/ELEX 7890 - Capstone/Test Footage/Trimmed/fish_light_trimmed_1.mov')
 
@@ -78,12 +80,27 @@ def detect_objects(image, model):
 # while True:
     # Read a frame from the video stream
 while (cap.isOpened()):
+    
+    #Start timer
+    startTimer = time.time()
+    
     ret, frame = cap.read()
-
+    
+    endTimer = time.time()
+    if testing:
+        print("Time to read frame: ", 1000*(endTimer - startTimer), "ms")
+    
     if ret == True:
+        startTimer = time.time()
         # Run the object detection on the frame
         boxes, scores, classes = detect_objects(frame, model)
+        endTimer = time.time()
+        
+        if testing:
+            print("Time to detect objects: ", 1000*(endTimer - startTimer), "ms")
+        
         # Display the detection results on the frame
+        startTimer = time.time()
         for i in range(len(boxes)):
             if scores[i] > 0.45:
                 ymin, xmin, ymax, xmax = boxes[i]
@@ -100,6 +117,10 @@ while (cap.isOpened()):
         # Exit the loop if the 'q' key is pressed
         if cv2.waitKey(1) == ord('q'):
             break
+        
+        endTimer = time.time()
+        if testing:
+            print("Time to display frame: ", 1000*(endTimer - startTimer), "ms")
 
 # Release the video capture object and close the display window
 cap.release()
