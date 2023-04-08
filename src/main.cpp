@@ -11,8 +11,14 @@ double millis() {
     return 1000*getTickCount()/getTickFrequency();
 }
 
-int main() {
+int main(int argc, char** argv) {
 
+    // Check if video path is given
+    string videoPath = "video/arnie.mp4";
+    if(argc > 1) {
+        videoPath = "video/" + argv[1];
+    }
+    cout << "Using video path: " << videoPath << endl;
 
     FishMLWrapper fishml;
     vector<FishMLData> objData;
@@ -20,7 +26,7 @@ int main() {
     double timer = millis();
 
     // Initialize Python environment and module
-    if(fishml.init()<0) {
+    if(fishml.init(videoPath)<0) {
         cout << "Error initializing fishML" << endl;
         return -1;
     }

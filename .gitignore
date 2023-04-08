@@ -9,3 +9,6 @@ py/CMake*
 py/Makefile
 py/ocvPyCpp
 py/ocvPyCpp/*
+py/vid/*.mp4
+py/vid/*.avi
+py/vid/*.mov
