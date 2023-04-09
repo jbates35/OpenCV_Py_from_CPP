@@ -13,7 +13,8 @@ using namespace cv;
 //Definitions
 namespace fml
 {
-   const string _modelPath = "models/ssd_mobilenet_v2_face_quant_postprocess_edgetpu.tflite";
+   const string _modelPath = "'models/fishModel1'";
+   const string _labelPath = "'labels/mscoco_label_map.pbtxt.txt'";
 }
 
 using namespace fml;

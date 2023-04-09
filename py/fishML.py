@@ -9,7 +9,7 @@ cwd = os.getcwd()
 label_rel_path = 'labels/mscoco_label_map.pbtxt.txt'
 label_path = os.path.join(cwd, label_rel_path)
 
-model_rel_path = 'models/fishModel1' # this one works best
+model_rel_path = 'models/fishModel1'
 model = tf.saved_model.load(os.path.join(cwd, model_rel_path))
 
 # Define the object detection function

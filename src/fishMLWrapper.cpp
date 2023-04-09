@@ -22,10 +22,16 @@ int FishMLWrapper::init()
 
    //Store needed python imports/commands to be parsed through
    _pyCommands = {
-      "import cv2 as cv",
+      "import cv2",
+      "import tensorflow as tf",
       "import numpy as np",
       "import os",
-      "face_cascade = cv.CascadeClassifier('haarcascade_frontalface_default.xml')"
+      "import time",
+      "cwd = os.getcwd()",
+      "label_rel_path = " + _labelPath,
+      "label_path = os.path.join(cwd, label_rel_path)",
+      "model_rel_path = " + _modelPath,
+      "model = tf.saved_model.load(os.path.join(cwd, model_rel_path))"
    };
 
    //Initialize python interpreter
