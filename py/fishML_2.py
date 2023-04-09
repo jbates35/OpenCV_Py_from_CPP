@@ -52,10 +52,7 @@ label_path = os.path.join(cwd, label_rel_path)
 model_rel_path = 'models/fishModel1' # this one works best
 model = tf.saved_model.load(os.path.join(cwd, model_rel_path))
 
-video_rel_path = 'vid/fishVid_Dark1.mp4'
-video_path = os.path.join(cwd, video_rel_path)
-cap = cv2.VideoCapture(video_path)
-
+cap = cv2.videoCapture(cwd + '/vid/fishVidDark1.mp4')
 testing = True
 
 # Parse the label map file
@@ -74,7 +71,7 @@ for line in lines:
 
 
 # Define the object detection function
-def detect_objects(image, model):
+def detect_objects(image):
     # Convert the image to a tensor
     image = tf.convert_to_tensor(image)
 

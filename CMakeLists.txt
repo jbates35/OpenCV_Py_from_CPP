@@ -3,11 +3,13 @@ cmake_minimum_required(VERSION 3.10)
 
 #Require C++17
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 project(ocvPyCpp)
 
 # include directories for src files
 include_directories(src)
-include_directories(/home/jbates/.local/lib/python3.10/site-packages/numpy/core/include/)
+include_directories(/home/dev/.local/lib/python3.10/site-packages/numpy/core/include/)
 
 # Find the Python interpreter and libraries
 find_package(PythonLibs REQUIRED)
