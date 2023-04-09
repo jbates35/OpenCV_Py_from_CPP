@@ -33,6 +33,12 @@ int FishMLHelper::getVideoEntry(string& selectionStr) {
 			continue;
 		}
 
+		//Make sure "_out" is not in the file name
+		if (entry.path().filename().string().find("_out") != string::npos)
+		{
+			continue;
+		}
+
 		videoFileNames.push_back(entry.path());
 	}
 
