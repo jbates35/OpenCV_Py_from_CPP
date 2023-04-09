@@ -1,59 +1,119 @@
-import cv2 as cv
+import cv2
+import tensorflow as tf
 import numpy as np
 import os
+import time
 
-# Load the pre-trained Haar cascade for face detection
-face_cascade = cv.CascadeClassifier('haarcascade_frontalface_default.xml')
-    
-def fishML(mat):    
-    # Convert the image to grayscale
-    gray = cv.cvtColor(mat, cv.COLOR_BGR2GRAY)
-    
-    # Detect objects in the image using the face cascade classifier
-    faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))    
-    
+cwd = os.getcwd()
+
+label_rel_path = 'labels/mscoco_label_map.pbtxt.txt'
+label_path = os.path.join(cwd, label_rel_path)
+
+model_rel_path = 'models/fishModel1'
+model = tf.saved_model.load(os.path.join(cwd, model_rel_path))
+
+# Define the object detection function
+def fishML(image):
+    # This will get returned at the end
     returnRects = []
     
-    for (x, y, w, h) in faces:
-        returnRects.append([x, y, w, h])    
-        
-    #Check if empty list
-    if len(returnRects) == 0:
-        returnRects.append([-1, -1, -1, -1])
+    # Convert the image to a tensor
+    image = tf.convert_to_tensor(image)
+    image = tf.convert_to_tensor(image, dtype=tf.uint8)
+    image = tf.expand_dims(image, axis=0)
     
-    # Return 0 to indicate success
+    # Run the object detection model on the image
+    output_dict = model(image)
+    
+    # Extract the detection results from the output dictionary
+    boxes = output_dict['detection_boxes'][0].numpy()
+    scores = output_dict['detection_scores'][0].numpy()
+    
+    frame_width, frame_height = image.shape[2], image.shape[1]
+    
+    objects_found = False
+    
+    for (box, score) in zip(boxes, scores):
+        # We need to filter out the results that are below the confidence threshold
+        if(score < 0.5):
+            continue
+        
+        objects_found = True
+        
+        # Now that we have the results, we need to convert them to the format that OpenCV uses
+        ymin, xmin, ymax, xmax = box
+        x = int(xmin * frame_width)
+        y = int(ymin * frame_height)
+        w = int((xmax - xmin) * frame_width)
+        h = int((ymax - ymin) * frame_height)
+        returnRects.append([x, y, w, h, score])
+    
+    if not objects_found:
+        returnRects.append([-1, -1,-1, -1, -1])
+    
     return returnRects
-    
 
-#If we are in main program
-if __name__ == "__main__":
-    # Define the key variable assigned to waitKey
-    key = ''
+if __name__ == '__main__':
+    cap = cv2.VideoCapture(cwd + '/vid/fishVidDark1.mp4')
+    testing = False
     
-    abs_path = os.path.dirname(__file__)
-    rel_path = 'img/banana.png'
-    full_path = os.path.join(abs_path, rel_path)
-    
-    img = cv.imread(full_path)
-    
-    returnList = fishML(img)
-    print(returnList)
+    # Parse the label map file
+    with open(label_path, 'r') as f:
+        lines = f.readlines()
+
+    # Create a dictionary that maps class IDs to their names
+    class_dict = {}
+    for line in lines:
+        if 'id:' in line:
+            class_id = int(line.split(':')[1])
+        elif 'display_name:' in line:
+            class_name = line.split(':')[1].strip().replace("'", "")
+            class_dict[class_id] = class_name
+
+    while (cap.isOpened()):
         
-    while(key != ord('q')):
-        # Parse through the list of faces
-        for face in returnList:
-            x = face[0]
-            y = face[1]
-            w = face[2]
-            h = face[3]            
-            cv.rectangle(img, (x, y), (x+w, y+h), (0, 255, 0), 2)
+        #Start timer
+        startTimer = time.time()
         
-        # Display the image
-        cv.imshow('Image', img)
+        ret, frame = cap.read()
+        
+        endTimer = time.time()
+        if testing:
+            print("Time to read frame: ", 1000*(endTimer - startTimer), "ms")
+        
+        if ret == True:
+            startTimer = time.time()
+            
+            # Run the object detection on the frame
+            objects_found = fishML(frame)
+            
+            endTimer = time.time()
+            
+            if testing:
+                print("Time to detect objects: ", 1000*(endTimer - startTimer), "ms")
+            
+            # Display the detection results on the frame
+            startTimer = time.time()
 
-        # Wait for a key press
-        key = cv.waitKey(0)
+            for x, y, w, h, score in objects_found:
+                if(x == -1):
+                    break
 
-    cv.destroyAllWindows()
-    
+                # Draw a bounding box around the detected object
+                cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
+                cv2.putText(frame, f'{"Fish"}:{score:.2f}', (x, y-5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
+            # Display the frame
+            cv2.imshow('Object Detection', frame)
+            
+            # Exit the loop if the 'q' key is pressed
+            if cv2.waitKey(1) == ord('q'):
+                break
+            
+            endTimer = time.time()
+            if testing:
+                print("Time to display frame: ", 1000*(endTimer - startTimer), "ms")
+
+    # Release the video capture object and close the display window
+    cap.release()
+    cv2.destroyAllWindows()

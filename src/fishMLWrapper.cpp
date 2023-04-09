@@ -7,19 +7,31 @@ FishMLWrapper::FishMLWrapper()
 FishMLWrapper::~FishMLWrapper()
 {
    //Clean up python interpreter
-   Py_DECREF(_pFunc);
-   Py_DECREF(_pModule);
+   Py_XDECREF(_pROI);
+   Py_XDECREF(_pVal);
+   Py_XDECREF(_pArgs);
+   Py_XDECREF(_pReturn);
+   Py_XDECREF(_pImg);
+   Py_XDECREF(_pFunc);
+   Py_XDECREF(_pModule);
    Py_Finalize();
 }
 
 int FishMLWrapper::init()
 {
+
    //Store needed python imports/commands to be parsed through
    _pyCommands = {
-      "import sys",
-      "import cv2 as cv",
+      "import cv2",
+      "import tensorflow as tf",
       "import numpy as np",
-      "face_cascade = cv.CascadeClassifier('haarcascade_frontalface_default.xml')"
+      "import os",
+      "import time",
+      "cwd = os.getcwd()",
+      "label_rel_path = " + _labelPath,
+      "label_path = os.path.join(cwd, label_rel_path)",
+      "model_rel_path = " + _modelPath,
+      "model = tf.saved_model.load(os.path.join(cwd, model_rel_path))"
    };
 
    //Initialize python interpreter
@@ -63,77 +75,79 @@ int FishMLWrapper::init()
    return 1;
 }
 
-int FishMLWrapper::update(Mat &srcImg, vector<Rect> &ROIs)
+int FishMLWrapper::update(Mat &srcImg, vector<FishMLData> &objData)
 {
+   if(srcImg.empty())
+   {
+      cout << "No source image for update" << endl;
+      return -1;
+   }
+
    //Convert Mat to numpy array
    npy_intp dims[3] = { srcImg. rows, srcImg.cols, srcImg.channels() };
-   PyObject* pImg = PyArray_SimpleNewFromData(srcImg.dims + 1, (npy_intp*) & dims, NPY_UINT8, srcImg.data);
+   _pImg = PyArray_SimpleNewFromData(srcImg.dims + 1, (npy_intp*) & dims, NPY_UINT8, srcImg.data);
 
    //Create python argument list
-   PyObject* pArgs = PyTuple_New(1);
-   PyTuple_SetItem(pArgs, 0, pImg);
+   _pArgs = PyTuple_New(1);
+   PyTuple_SetItem(_pArgs, 0, _pImg);
 
    //Create return value pointer
-   PyObject* pReturn = PyObject_CallObject(_pFunc, pArgs);
-
-   //Free memory of arguments
-   Py_DECREF(pImg);
-   Py_DECREF(pArgs);
+   _pReturn = PyObject_CallObject(_pFunc, _pArgs);
 
    //Make sure there's a return value
-   if (pReturn == NULL)
+   if (_pReturn == NULL)
    {
       PyErr_Print();
-      Py_DECREF(pReturn);
       return -1;
    }
 
    //Parse return value to vector of Rects
    //First declare variables needed
-   vector<Rect> tempROIs;
-   PyObject* pROI;
-   PyObject* pVal;
+   vector<FishMLData> tempObjData;
 
    //Get size of return value
-   Py_ssize_t rSize = PyList_Size(pReturn);
+   Py_ssize_t rSize = PyList_Size(_pReturn);
 
    //Iterate through return value
    for (Py_ssize_t i = 0; i < rSize; i++)
    {
       //This stores the iterated items which will form the rects later
-      pROI = PyList_GetItem(pReturn, i);
+      _pROI = PyList_GetItem(_pReturn, i);
       vector<int> rectVals;
 
       //Parse through to get the rect coordinates
       for (Py_ssize_t j = 0; j < 4; j++)
       {
          // Get object of value, convert it to a c++ style int, and store it in the vector
-         pVal = PyList_GetItem(pROI, j);
-         int val = PyLong_AsLong(pVal);
+         _pVal = PyList_GetItem(_pROI, j);
+         int val = PyLong_AsLong(_pVal);
          rectVals.push_back(val);
       }
 
+      //Get ID
+      _pVal = PyList_GetItem(_pROI, 4);
+      double score = PyFloat_AsDouble(_pVal);
+
       //Create Rect from vector and dump for later
       Rect ROI(rectVals[0], rectVals[1], rectVals[2], rectVals[3]);
-      tempROIs.push_back(ROI);
+
+      FishMLData data = { ROI, score };
+
+      tempObjData.push_back(data);
    }
 
-   //Free memory of return value
-   Py_DECREF(pROI);
-   Py_DECREF(pVal);
-   Py_DECREF(pReturn);
 
    //Clear ROIs and store new ROIs
-   ROIs.clear();
+   objData.clear();
 
    //If no ROIs were found, return 0
-   if(tempROIs.size() == 1 && tempROIs[0].x == -1)
+   if(tempObjData.size() == 1 && tempObjData[0].ROI.x == -1)
    {
       return 0;
    }
 
    //Success, dump ROIs
-   ROIs = tempROIs;
+   objData = tempObjData;
 
    return 1;
 }

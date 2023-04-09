@@ -10,6 +10,22 @@
 using namespace std;
 using namespace cv;
 
+//Definitions
+namespace fml
+{
+   const string _modelPath = "'models/fishModel1'";
+   const string _labelPath = "'labels/mscoco_label_map.pbtxt.txt'";
+}
+
+using namespace fml;
+
+//Data structure for rect, id, score
+struct FishMLData
+{
+   Rect ROI;
+   double score;
+};
+
 class FishMLWrapper
 {
 public:
@@ -17,10 +33,16 @@ public:
    ~FishMLWrapper();
 
    int init();
-   int update(Mat &srcImg, vector<Rect> &ROIs);
+   int update(Mat &srcImg, vector<FishMLData> &objData);
 
 private:
    vector<string> _pyCommands;
    PyObject* _pModule;
    PyObject* _pFunc;
+   PyObject* _pReturn;
+   PyObject* _pROI;
+   PyObject* _pArgs;
+   PyObject* _pVal;
+   PyObject* _pImg;
+
 };

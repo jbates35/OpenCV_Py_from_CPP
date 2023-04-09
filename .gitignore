@@ -2,3 +2,13 @@
 .vscode
 build/*
 build
+py/__pycache__/*
+py/__pycache__
+py/cmake*
+py/CMake*
+py/Makefile
+py/ocvPyCpp
+py/ocvPyCpp/*
+py/vid/*.mp4
+py/vid/*.avi
+py/vid/*.mov
