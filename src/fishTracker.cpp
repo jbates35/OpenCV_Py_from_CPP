@@ -25,10 +25,10 @@ int FishTracker::run(Mat& im, mutex& lock, int& fishIncrement, int& fishDecremen
 	
 	//First, get edges for comparison at multiple times through loop
 	vector<Rect> edges;
-	//edges.push_back(Rect(0, 0, _frameSize.width, _frameSize.height * _marginProportion)); // top edge
 	edges.push_back(Rect(0, 0, _frameSize.width * _marginProportion, _frameSize.height)); // left edge
 	edges.push_back(Rect(_frameSize.width * (1 - _marginProportion), 0, _frameSize.width, _frameSize.height)); // right edge
-	//edges.push_back(Rect(0, _frameSize.height * (1 - _marginProportion), _frameSize.width, _frameSize.height)); // bottom edge
+	edges.push_back(Rect(0, _frameSize.height - 2, _frameSize.width, 2)); // bottom edge
+	edges.push_back(Rect(0, 0, _frameSize.width, 2)); // top edge
 	
 	{
 		//Make automatic mutex control
@@ -54,8 +54,27 @@ int FishTracker::run(Mat& im, mutex& lock, int& fishIncrement, int& fishDecremen
 		//Make sure we aren't detecting the same object twice
 		for (int j = _fishTracker.size() - 1; j > i; j--)
 		{
+			bool isOverlapped = false;
+
+			Rect rect1 = _fishTracker[i].roi;
+			Rect rect2 = _fishTracker[j].roi;
+			
+			int area1 = rect1.area();
+			int area2 = rect2.area();
+
+			// Check if one is inside the other
+			if(_fishTracker[i].isCounted || _fishTracker[j].isCounted)
+			{
+				isOverlapped |= (rect1 & rect2).area() >= area1 * 0.9;
+				isOverlapped |= (rect1 & rect2).area() >= area2 * 0.9;
+			}
+			else
+			{
+				isOverlapped |= (rect1 & rect2).area() >= area1 * 0.6;
+				isOverlapped |= (rect1 & rect2).area() >= area2 * 0.6;
+			}
 			//If roi overlap, same object
-			if ((_fishTracker[j].roi & _fishTracker[i].roi).area() > _minCombinedRectArea)
+			if (isOverlapped)
 			{
 				_fishTracker.erase(_fishTracker.begin() + j);
 			}
@@ -104,10 +123,16 @@ int FishTracker::run(Mat& im, mutex& lock, int& fishIncrement, int& fishDecremen
 			//fishOverlappedROIs |= (obj.ROI & fish.roi).area() >= min(obj.ROI.area(), fish.roi.area()) * _minCombinedRectAreaProportion;
 
 			//Now check whether the contour rect is within the roi
-			fishOverlappedROIs |= obj.ROI.x <= fish.roi.x && obj.ROI.y <= fish.roi.y && obj.ROI.x + obj.ROI.width >= fish.roi.x + fish.roi.width && obj.ROI.y + obj.ROI.height >= fish.roi.y + fish.roi.height;
-			fishOverlappedROIs |= fish.roi.x <= obj.ROI.x && fish.roi.y <= obj.ROI.y && fish.roi.x + fish.roi.width >= obj.ROI.x + obj.ROI.width && fish.roi.y + fish.roi.height >= obj.ROI.y + obj.ROI.height;
-			fishOverlappedROIs |= (obj.ROI & fish.roi).area() >= obj.ROI.area() * 0.5;
-			fishOverlappedROIs |= (obj.ROI & fish.roi).area() >= fish.roi.area() * 0.5;
+			if(fish.isCounted)
+			{
+				fishOverlappedROIs |= (obj.ROI & fish.roi).area() >= obj.ROI.area() * 0.6;
+				fishOverlappedROIs |= (obj.ROI & fish.roi).area() >= fish.roi.area() * 0.6;
+			}
+			else
+			{
+				fishOverlappedROIs |= (obj.ROI & fish.roi).area() >= obj.ROI.area() * 0.3;
+				fishOverlappedROIs |= (obj.ROI & fish.roi).area() >= fish.roi.area() * 0.3;
+			}
 
 			//Can exit loop if there's been an overlap
 			if (fishOverlappedROIs)
@@ -200,9 +225,24 @@ int FishTracker::run(Mat& im, mutex& lock, int& fishIncrement, int& fishDecremen
 		// }
 		///////////////////END OF REFLECTION CHECKING
 	
+		bool isOnEdge = false;
+		for (auto edge : edges)
+		{
+			isOnEdge |= (obj.ROI & edge).area() > obj.ROI.area() * 0.3;
+		}
+
+		if(isOnEdge)
+		{
+			cout << "Fish on edge" << endl;
+			continue;
+		}
+
+		//Make rect mostly in center of screen, from top of screen to bottom
+		Rect centerRect = Rect(_frameSize.width * 0.4, 0, _frameSize.width * 0.2, _frameSize.height);
+		bool isCenter = (obj.ROI & centerRect).area() > 0;
 
 		//If no overlap, then make new struct and track
-		if (!fishOverlappedROIs && !fishRetracked && !isReflection)
+		if (!fishOverlappedROIs && !fishRetracked && !isReflection && isCenter)
 		{									
 			//Initialize struct that keeps track of the tracking info
 			FishTrackerStruct tempTracker;					
@@ -214,6 +254,7 @@ int FishTracker::run(Mat& im, mutex& lock, int& fishIncrement, int& fishDecremen
 			tempTracker.lostFrameCount = 0;
 			tempTracker.startTime = millis();
 			tempTracker.currentTime = millis() - tempTracker.startTime;
+			tempTracker.isCounted = false;
 				
 			//Now add that to the overall fish tracker
 			_fishTracker.push_back(tempTracker);	
@@ -252,12 +293,14 @@ int FishTracker::run(Mat& im, mutex& lock, int& fishIncrement, int& fishDecremen
 		_fishTracker[i].currentTime = millis() - _fishTracker[i].startTime;
 		bool trackedObjectOutdated = _fishTracker[i].currentTime > TRACKER_TIMEOUT_MILLIS;
 
-		//Delete if timeout
-		if (trackedObjectOutdated)// && !(_frameMiddle > _fishTracker[i].roi.x && _frameMiddle < _fishTracker[i].roi.x + _fishTracker[i].roi.width))
+		//Delete if timeout and not in center
+		if (trackedObjectOutdated && !(_frameMiddle > _fishTracker[i].roi.x && _frameMiddle < _fishTracker[i].roi.x + _fishTracker[i].roi.width))
 		{
 			_fishTracker.erase(_fishTracker.begin() + i);
 			continue; // Move onto next iteration
 		}
+
+		bool trackObjectOudatedCenter = _fishTracker[i].currentTime > TRACKER_TIMEOUT_MILLIS_CENTER;
 		
 		if (!_fishTracker[i].isTracked)
 		{	
@@ -326,18 +369,25 @@ int FishTracker::run(Mat& im, mutex& lock, int& fishIncrement, int& fishDecremen
 		{
 			int posCurr = _fishTracker[i].posX[1];
 			int posLast = _fishTracker[i].posX[0];
-		
-			if (posCurr >= 10 && posCurr <= (_frameSize.width-10) && posLast >= 10 && posLast <= (_frameSize.width-10))
+
+			//If the fish is in the middle, we don't want to count it
+			if(_fishTracker[i].isCounted)
 			{
-				if (posCurr > _frameMiddle && posLast <= _frameMiddle)
-				{
-					fishIncrement++;	
-				}
-				else if (posCurr < _frameMiddle && posLast >= _frameMiddle)
-				{
-					fishDecrement++;				
-				}
-			}	
+				continue;
+			}
+
+			if (posCurr > _frameMiddle && posLast <= _frameMiddle)
+			{
+				fishIncrement++;	
+				_fishTracker[i].isCounted=true;
+				continue;				
+			}
+			else if (posCurr < _frameMiddle && posLast >= _frameMiddle)
+			{
+				fishDecrement++;	
+				_fishTracker[i].isCounted=true;
+				continue;
+			}
 			
 			//Delete unnecessary position values
 			_fishTracker[i].posX.erase(_fishTracker[i].posX.begin());

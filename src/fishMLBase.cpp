@@ -175,6 +175,9 @@ void fishMLBase::_draw()
     string fishDecrementedStr = "Fish moving backward: " + to_string(_fishDecremented);
     putText(_frame, fishDecrementedStr, Point(70, 20), FONT_HERSHEY_COMPLEX, 0.65, Scalar(255, 255, 255), 2);
 
+    //Draw line down middle
+    line(_frame, Point(_frameSize.width/2, 0), Point(_frameSize.width/2, _frameSize.height), Scalar(150, 255, 150), 1);
+
     // Write frame to video
     if(_videoWriteMode == VideoWriteMode::ON)
     {
