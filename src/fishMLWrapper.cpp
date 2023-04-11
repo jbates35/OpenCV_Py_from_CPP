@@ -1,4 +1,6 @@
 #include "fishMLWrapper.h"
+#include <fstream>
+#include <string>
 
 FishMLWrapper::FishMLWrapper()
 {
@@ -19,26 +21,41 @@ FishMLWrapper::~FishMLWrapper()
 
 int FishMLWrapper::init()
 {
+   //Open python file fishML.py as file
+   ifstream infile("fishML.py");
+   vector<string> pyCommands;
+   string line;
 
-   //Store needed python imports/commands to be parsed through
-   _pyCommands = {
-      "import cv2",
-      "import tensorflow as tf",
-      "import numpy as np",
-      "import os",
-      "import time",
-      "cwd = os.getcwd()",
-      "label_rel_path = " + _labelPath,
-      "label_path = os.path.join(cwd, label_rel_path)",
-      "model_rel_path = " + _modelPath,
-      "model = tf.saved_model.load(os.path.join(cwd, model_rel_path))"
-   };
+   //Parse through the contents of the file and store in a vector of strings
+   while(getline(infile, line))
+   {
+      //Find any "#" character and trim the line to that point
+      size_t pos = line.find("#");
+      if (pos != string::npos)
+      {
+         line = line.substr(0, pos);
+      }
+
+      //Continue if line is empty or contains only spaces
+      if (line.empty() || line.find_first_not_of(' ') == string::npos)
+      {
+         continue;
+      }
+
+      //Break if line is a function definition
+      if (line.find("def") != string::npos)
+      {
+         break;
+      }
+
+      pyCommands.push_back(line);
+   }
 
    //Initialize python interpreter
    Py_Initialize();
 
    //Parse through python commands
-   for (string command : _pyCommands)
+   for (string command : pyCommands)
    {
       PyRun_SimpleString(command.c_str());
    }

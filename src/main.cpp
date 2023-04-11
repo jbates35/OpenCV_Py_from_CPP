@@ -15,9 +15,25 @@ double millis() {
     return 1000*getTickCount()/getTickFrequency();
 }
 
-int main() {
+int main(int argc, char** argv) {
 
     fishMLBase fishml;
+
+    for(int i = 0; i < argc; i++)
+    {
+        string arg = argv[i];
+
+        if(arg == "-t")
+        {
+            cout << "Test mode on" << endl;
+            fishml.setTestMode(TestMode::ON);
+        }
+        else if(arg == "-w")
+        {
+            cout << "Video write mode on" << endl;
+            fishml.setVideoWriteMode(VideoWriteMode::ON);
+        }
+    }
     
     if(fishml.init() < 0)
     {
@@ -25,8 +41,7 @@ int main() {
         return -1;
     }
 
-    fishml.setTestMode(TestMode::ON);
-    
+
     while(fishml.getReturnKey() != 27 /*ESC*/ && fishml.getReturnKey() != 'q' && fishml.getReturnKey() != 'Q')
     {
         if(fishml.run() < 0)
