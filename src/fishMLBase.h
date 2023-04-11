@@ -12,6 +12,8 @@
 #include "helperfunc.h"
 #include "fishTracker.h"
 
+const int FRAME_MAX_HEIGHT = 300;
+
 enum class TestMode
 {
     OFF,
@@ -44,7 +46,9 @@ private:
 
     FishMLWrapper _fishMLWrapper;
     vector<FishMLData> _objDetectData;
+
     Mat _frame;
+    double _scaleFactor;
     VideoCapture _cap;
     VideoWriter _videoWriter;
     int _frameCount;

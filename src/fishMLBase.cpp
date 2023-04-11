@@ -44,8 +44,13 @@ int fishMLBase::init()
         return -1;
     }
 
-    // Get frame size
+    // Resize frame to fit screen
     _cap >> _frame;
+    int frameHeight = _frame.size().height;
+    _scaleFactor = (double)FRAME_MAX_HEIGHT / (double)frameHeight;    
+    resize(_frame, _frame, Size(), _scaleFactor, _scaleFactor);
+
+    // Get frame size
     _frameSize = Size(_frame.cols, _frame.rows);
     _frameCount = 0;
     _frameTotal = _cap.get(CAP_PROP_FRAME_COUNT);
@@ -108,6 +113,7 @@ int fishMLBase::_update()
 {
     // Read frame
     _cap >> _frame;
+    resize(_frame, _frame, Size(), _scaleFactor, _scaleFactor);
     _frameCount++;
 
     // Check if frame is empty

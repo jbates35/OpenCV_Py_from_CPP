@@ -22,13 +22,36 @@ python3 -m pip install opencv-contrib-python==4.5.5.64
 # More dependencies
 apt-get -y install libgl1-mesa-glx
 
+echo ">> Installing gdown..."
+pip install gdown
+
+echo ">> Downloading videos for program..."
+cd $DIR/py
+mkdir vid && cd vid
+gdown --folder https://drive.google.com/drive/folders/1SJBkccKM8vbffXaolVdfYW8ZJnETbQMr
+cd unprocFishVids
+mv * ../
+cd ..
+rm -rf unprocFishVids
+
 # Make build folder and build program
 echo ">> Building program..."
 cd $DIR
 mkdir build
-cp -R $DIR/py/* $DIR/build
+mkdir build/vid
+cp -R $DIR/py/vid/* $DIR/build/vid
+
+mkdir build/img
+cp -R $DIR/py/img/* $DIR/build/img
+
+mkdir build/models
+cp -R $DIR/py/models/* $DIR/build/models
+
+mkdir build/labels
+cp -R $DIR/py/labels/* $DIR/build/labels
+
 cd build
 cmake ..
-make
+make -j4
 
 chmod +x $DIR/*.sh
