@@ -176,10 +176,10 @@ void fishMLBase::_draw()
 
     // Write fish count
     string fishIncrementedStr = "Fish moving forward: " + to_string(_fishIncremented);
-    putText(_frame, fishIncrementedStr, Point(_frameSize.width/2 + 70, 20), FONT_HERSHEY_COMPLEX, 0.65, Scalar(255, 255, 255), 2);
+    putText(_frame, fishIncrementedStr, Point(_frameSize.width/2 + 70, 20), FONT_HERSHEY_COMPLEX, 0.35, Scalar(255, 255, 255), 1);
 
     string fishDecrementedStr = "Fish moving backward: " + to_string(_fishDecremented);
-    putText(_frame, fishDecrementedStr, Point(70, 20), FONT_HERSHEY_COMPLEX, 0.65, Scalar(255, 255, 255), 2);
+    putText(_frame, fishDecrementedStr, Point(70, 20), FONT_HERSHEY_COMPLEX, 0.35, Scalar(255, 255, 255), 1);
 
     //Draw line down middle
     line(_frame, Point(_frameSize.width/2, 0), Point(_frameSize.width/2, _frameSize.height), Scalar(150, 255, 150), 1);

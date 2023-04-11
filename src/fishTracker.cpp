@@ -177,7 +177,6 @@ int FishTracker::run(Mat& im, mutex& lock, int& fishIncrement, int& fishDecremen
 		//The method I can think of best doing this is by creating an artificial rect for both the input and output, and comparing the two
 		bool isReflection = false;
 		
-		///////////////////UNCOMMENT FOLLOWING IF WE NEED REFLECTION CHECKING
 		// Rect currentContourRect;
 		// int currentContourY;
 		
