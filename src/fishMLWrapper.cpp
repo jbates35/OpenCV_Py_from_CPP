@@ -29,8 +29,15 @@ int FishMLWrapper::init()
    //Parse through the contents of the file and store in a vector of strings
    while(getline(infile, line))
    {
-      //Continue if line is empty
-      if (line.empty() || line.find("#") != string::npos)
+      //Find any "#" character and trim the line to that point
+      size_t pos = line.find("#");
+      if (pos != string::npos)
+      {
+         line = line.substr(0, pos);
+      }
+
+      //Continue if line is empty or contains only spaces
+      if (line.empty() || line.find_first_not_of(' ') == string::npos)
       {
          continue;
       }

@@ -36,7 +36,6 @@ public:
    int update(Mat &srcImg, vector<FishMLData> &objData);
 
 private:
-   vector<string> _pyCommands;
    PyObject* _pModule;
    PyObject* _pFunc;
    PyObject* _pReturn;
@@ -44,5 +43,4 @@ private:
    PyObject* _pArgs;
    PyObject* _pVal;
    PyObject* _pImg;
-
 };
