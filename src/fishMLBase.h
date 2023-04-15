@@ -13,6 +13,7 @@
 #include "fishTracker.h"
 
 const int FRAME_MAX_HEIGHT = 300;
+const double DRAW_FPS = 30;
 
 enum class TestMode
 {
@@ -42,12 +43,20 @@ public:
 
 private:
     int _update();
+    static void _updateThread(fishMLBase* fishMLBasePtr);
+
+    int _getFrame();
     void _draw();
+    static void _drawThread(fishMLBase* fishMLBasePtr);
 
     FishMLWrapper _fishMLWrapper;
     vector<FishMLData> _objDetectData;
 
-    Mat _frame;
+    map<string, double> _fishTimers;
+
+    mutex _frameMutex, _drawMutex, _trackerMutex, _updateMutex, _runLock, _roiLock;
+
+    Mat _frame, _framePrev;
     double _scaleFactor;
     VideoCapture _cap;
     VideoWriter _videoWriter;
@@ -70,5 +79,10 @@ private:
 
     Size _frameSize;
 
-    mutex _trackerMutex;
+    bool _videoCanRun;
+    bool _trackerCanRun;
+    bool _trackerRunning;
+
+    bool _updateRunning;
+    bool _drawRunning;
 };
