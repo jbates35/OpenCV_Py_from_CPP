@@ -64,6 +64,8 @@ int fishMLBase::init()
     _frameCount = 0;
     _frameTotal = _cap.get(CAP_PROP_FRAME_COUNT);
 
+    _videoCanRun = true;
+
     // Return to beginning of video
     _cap.set(CAP_PROP_POS_FRAMES, 0);
 
@@ -110,24 +112,22 @@ int fishMLBase::init()
     _fishTimers["draw"] = millis();
     _fishTimers["update"] = millis();
 
+    thread updateThread(_updateThread, this);
+    updateThread.detach();
+   
     return 0;
+
 }
 
 int fishMLBase::run()
 {
     // Start threads
-    if (!_drawRunning && millis() - _fishTimers["draw"] > 1000/DRAW_FPS)
+    if (millis() - _fishTimers["draw"] > (double) 1000.0/DRAW_FPS)
     {
         _fishTimers["draw"] = millis();
-
+	    _getFrame();
         thread drawThread(_drawThread, this);
         drawThread.detach();
-    }
-
-    if(_trackerCanRun && !_updateRunning)
-    {
-        thread updateThread(_updateThread, this);
-        updateThread.detach();
     }
 
     return 0;
@@ -135,8 +135,8 @@ int fishMLBase::run()
 
 int fishMLBase::_update()
 {
-    std::lock_guard<std::mutex> updateGuard(_updateMutex); 
-
+	while(_videoCanRun)
+	{
     //cout << "Entering update" << endl;
     if(millis() - _fishTimers["update"] > 5)
     {
@@ -149,60 +149,60 @@ int fishMLBase::_update()
     vector<FishTrackerStruct> localTrackedData;
 
     {
+        double timer = millis();
         scoped_lock<mutex> frameLock(_frameMutex);
         frameTrack = _frame.clone();
+        cout << "Time to clone frame: " << millis() - timer << "ms" << endl;
     }
     
     if(frameTrack.empty())
     {
         cout << "Error cloning frame" << endl;
-        _trackerRunning = false;
-        return -1;
+        continue;
     }
     
     if (_testMode == TestMode::ON)
         _timer = millis();
 
-
+    
     // Run fishML
     {
-        scoped_lock<mutex> roiGuard(_roiLock);
-
+        //scoped_lock<mutex> roiGuard(_roiLock);
+        cout << "Running fishML" << endl;
         if (_fishMLWrapper.update(frameTrack, localObjDetectData) < 0)
         {
             cout << "Error running fishML" << endl;
             _videoCanRun = false;
-            return -1;
+            continue;
         }
+        cout << "Finished running fishML" << endl;
     }
     if (_testMode == TestMode::ON)
         cout << "Time to run fishML: " << millis() - _timer << "ms" << endl;
     if (_testMode == TestMode::ON)
         _timer = millis();
 
-    
+    /*
 
     // Run fish tracker
     if (_fishTracker.run(frameTrack, _trackerMutex, _fishIncremented, _fishDecremented, _objDetectData, _trackedData) < 0)
     {
         cout << "Error running fish tracker" << endl;
-        _videoCanRun = false;
-        return -1;
+        continue;
     }
 
     if (_testMode == TestMode::ON)
         cout << "Time to run fish tracker: " << millis() - _timer << "ms" << endl;
     
-    
+	} 
+    */
+    }
     return 0;
 }
 
 void fishMLBase::_updateThread(fishMLBase *fishMLBasePtr)
 {
-    fishMLBasePtr-> _updateRunning = true;
-    //scoped_lock<mutex> updateLock(fishMLBasePtr->_updateMutex);
     fishMLBasePtr->_update();
-    fishMLBasePtr-> _updateRunning = false;
 }
 
 int fishMLBase::_getFrame()
@@ -231,6 +231,8 @@ int fishMLBase::_getFrame()
 
 void fishMLBase::_draw()
 {
+    scoped_lock<mutex> lock(_runLock);
+
     Mat frameDraw;
 
     {
@@ -239,6 +241,7 @@ void fishMLBase::_draw()
         frameDraw = _frame.clone();
     }
     // Draw rectangles around ROIs and display score
+    /*
     {
         scoped_lock<mutex> roiGuard(_roiLock);
         for (auto obj : _objDetectData)
@@ -250,7 +253,7 @@ void fishMLBase::_draw()
             cv::putText(frameDraw, rectPos, Point(obj.ROI.x + 5, obj.ROI.y + 30), FONT_HERSHEY_SIMPLEX, 0.3, Scalar(155, 255, 255), 1);
         }
     }
-
+*/
     // Draw tracked fish
     {
         scoped_lock lock(_trackerMutex);
@@ -310,9 +313,6 @@ void fishMLBase::_draw()
 
 void fishMLBase::_drawThread(fishMLBase *fishMLBasePtr)
 {
-    fishMLBasePtr -> _drawRunning = true;
-    scoped_lock<mutex> lock(fishMLBasePtr->_runLock);
-    fishMLBasePtr->_getFrame();
+//    fishMLBasePtr->_getFrame();
     fishMLBasePtr->_draw();
-    fishMLBasePtr -> _drawRunning = false;
 }

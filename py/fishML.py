@@ -16,9 +16,12 @@ model_file = os.path.join(script_dir, 'models/ssd_mobilenet_v2_face_quant_postpr
 interpreter = make_interpreter(model_file)
 interpreter.allocate_tensors()
 
+print("Interpreter loaded")
+
     
 def fishML(mat):      
     # Convert the image to RGB format and resize it
+    print("Entering fishML from Python")
     mat = cv.cvtColor(mat, cv.COLOR_BGR2RGB)
     
     # Crop the image taking only an roi of a square in the center
@@ -39,10 +42,12 @@ def fishML(mat):
     size = common.input_size(interpreter)
     _, scale = common.set_resized_input(interpreter, mat.shape[:2], lambda size: cv.resize(mat, size))
     
+    print("Invoking interpreter")
     # Run an object detection
     interpreter.invoke()    
     objs = detect.get_objects(interpreter, 0.4, scale)
 
+    print("Interpreter invoked")
     # Create an empty list to store the rois
     returnRects = []
     
