@@ -164,8 +164,8 @@ int FishTracker::run(Mat& im, mutex& lock, int& fishIncrement, int& fishDecremen
 				fish.isTracked = true;
 					
 				//Re-initialize the tracker with the new coordinates
-				TrackerCSRT::Params params;
-				fish.tracker = TrackerCSRT::create(params);
+				TrackerKCF::Params params;
+				fish.tracker = TrackerKCF::create(params);
 				fish.tracker->init(frameRaw, contourRectROI);
 				
 				break;
@@ -177,7 +177,6 @@ int FishTracker::run(Mat& im, mutex& lock, int& fishIncrement, int& fishDecremen
 		//The method I can think of best doing this is by creating an artificial rect for both the input and output, and comparing the two
 		bool isReflection = false;
 		
-		///////////////////UNCOMMENT FOLLOWING IF WE NEED REFLECTION CHECKING
 		// Rect currentContourRect;
 		// int currentContourY;
 		
@@ -247,7 +246,7 @@ int FishTracker::run(Mat& im, mutex& lock, int& fishIncrement, int& fishDecremen
 			//Initialize struct that keeps track of the tracking info
 			FishTrackerStruct tempTracker;					
 			tempTracker.isTracked = true;
-			tempTracker.tracker = TrackerCSRT::create();					
+			tempTracker.tracker = TrackerKCF::create();					
 			tempTracker.tracker->init(frameRaw, contourRectROI);
 			tempTracker.roi = contourRectROI;
 			tempTracker.posX.push_back(contourRectROI.x + contourRectROI.width / 2);

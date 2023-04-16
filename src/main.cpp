@@ -42,7 +42,7 @@ int main(int argc, char** argv) {
     }
 
 
-    while(fishml.getReturnKey() != 27 /*ESC*/ && fishml.getReturnKey() != 'q' && fishml.getReturnKey() != 'Q')
+    while(fishml.videoCanRun() && fishml.getReturnKey() != 27 /*ESC*/ && fishml.getReturnKey() != 'q' && fishml.getReturnKey() != 'Q')
     {
         if(fishml.run() < 0)
         {
