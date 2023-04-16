@@ -2,6 +2,7 @@ import cv2 as cv
 import numpy as np
 import os
 import pathlib
+import sys
 
 from pycoral.adapters import common
 from pycoral.adapters import detect
@@ -19,14 +20,19 @@ interpreter.allocate_tensors()
 print("Interpreter loaded")
 
     
-def fishML(mat):      
+def fishML(mat):
+    assert isinstance(mat, np.ndarray), "Input must be a numpy.ndarray"
+
+    if 'cv2' not in sys.modules:
+        print("cv2 module is not loaded.")
+        return
+
     # Convert the image to RGB format and resize it
     print("Entering fishML from Python")
-    mat = cv.cvtColor(mat, cv.COLOR_BGR2RGB)
+    
     
     # Crop the image taking only an roi of a square in the center
     height, width = mat.shape[:2]
-    
     print(width, height)
     
     center_x = int(width/2)
@@ -36,9 +42,18 @@ def fishML(mat):
     
     x = center_x - int(roi_size/2)
     y = center_y - int(roi_size/2)
-    
+
     mat = mat[y:y+roi_size, x:x+roi_size]
-         
+
+    print("Cropping image")
+    
+    cv.imshow("cropped", mat)
+    
+    print("Changing colorspace")
+    
+    mat = cv.cvtColor(mat, cv.COLOR_BGR2RGB)
+    
+    print("Resizing image")
     size = common.input_size(interpreter)
     _, scale = common.set_resized_input(interpreter, mat.shape[:2], lambda size: cv.resize(mat, size))
     

@@ -100,9 +100,13 @@ int FishMLWrapper::update(Mat &srcImg, vector<FishMLData> &objData)
       return -1;
    }
 
+   cout << "Point 1 " << endl;
+
    //Convert Mat to numpy array
    npy_intp dims[3] = { srcImg. rows, srcImg.cols, srcImg.channels() };
    _pImg = PyArray_SimpleNewFromData(srcImg.dims + 1, (npy_intp*) & dims, NPY_UINT8, srcImg.data);
+
+   cout << "Point 2 " << endl;
 
    //Create python argument list
    _pArgs = PyTuple_New(1);
@@ -110,6 +114,8 @@ int FishMLWrapper::update(Mat &srcImg, vector<FishMLData> &objData)
 
    //Create return value pointer
    _pReturn = PyObject_CallObject(_pFunc, _pArgs);
+
+   cout << "Point 3 " << endl;
 
    //Make sure there's a return value
    if (_pReturn == NULL)
@@ -140,7 +146,6 @@ int FishMLWrapper::update(Mat &srcImg, vector<FishMLData> &objData)
          int val = PyLong_AsLong(_pVal);
          rectVals.push_back(val);
       }
-
       //Get ID
       _pVal = PyList_GetItem(_pROI, 4);
       double score = PyFloat_AsDouble(_pVal);
@@ -153,6 +158,7 @@ int FishMLWrapper::update(Mat &srcImg, vector<FishMLData> &objData)
       tempObjData.push_back(data);
    }
 
+   cout << "Point 4 " << endl;
 
    //Clear ROIs and store new ROIs
    objData.clear();
@@ -163,6 +169,8 @@ int FishMLWrapper::update(Mat &srcImg, vector<FishMLData> &objData)
       return 0;
    }
 
+   cout << "Point 5 " << endl;
+   
    //Success, dump ROIs
    objData = tempObjData;
 
