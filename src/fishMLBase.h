@@ -15,6 +15,8 @@
 const int FRAME_MAX_HEIGHT = 300;
 const double DRAW_FPS = 30;
 
+using namespace std;
+
 enum class TestMode
 {
     OFF,
@@ -40,6 +42,7 @@ public:
     void setTestMode(TestMode testMode) { _testMode = testMode; }
     void setVideoWriteMode(VideoWriteMode videoWriteMode) { _videoWriteMode = videoWriteMode; }
     char getReturnKey() { return _returnKey; }
+    bool videoCanRun() { return _videoCanRun; }
 
 private:
     int _update();
@@ -54,7 +57,7 @@ private:
 
     map<string, double> _fishTimers;
 
-    mutex _frameMutex, _drawMutex, _trackerMutex, _updateMutex, _runLock, _roiLock;
+    mutex _frameMutex, _drawMutex, _trackerMutex, _updateMutex, _runMutex, _roiMutex, _throwawayMutex;
 
     Mat _frame, _framePrev;
     double _scaleFactor;

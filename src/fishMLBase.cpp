@@ -112,7 +112,7 @@ int fishMLBase::init()
     _fishTimers["draw"] = millis();
     _fishTimers["update"] = millis();
 
-    thread updateThread(_updateThread, this);
+    thread updateThread(_updateThread, this);   
     updateThread.detach();
    
     return 0;
@@ -129,74 +129,71 @@ int fishMLBase::run()
         thread drawThread(_drawThread, this);
         drawThread.detach();
     }
-
     return 0;
 }
 
 int fishMLBase::_update()
 {
-	while(_videoCanRun)
+	while(1)
 	{
-    //cout << "Entering update" << endl;
-    if(millis() - _fishTimers["update"] > 5)
-    {
-        cout << "Millis since last running: " << millis() - _fishTimers["update"] << endl;
-    }
-    _fishTimers["update"] = millis(); 
+        Mat frameTrack;
+        vector<FishMLData> localObjDetectData;
+        vector<FishTrackerStruct> localTrackedData;
 
-    Mat frameTrack;
-    vector<FishMLData> localObjDetectData;
-    vector<FishTrackerStruct> localTrackedData;
-
-    {
-        double timer = millis();
-        scoped_lock<mutex> frameLock(_frameMutex);
-        frameTrack = _frame.clone();
-        cout << "Time to clone frame: " << millis() - timer << "ms" << endl;
-    }
-    
-    if(frameTrack.empty())
-    {
-        cout << "Error cloning frame" << endl;
-        continue;
-    }
-    
-    if (_testMode == TestMode::ON)
-        _timer = millis();
-
-    
-    // Run fishML
-    {
-        //scoped_lock<mutex> roiGuard(_roiLock);
-        cout << "Running fishML" << endl;
-        if (_fishMLWrapper.update(frameTrack, localObjDetectData) < 0)
         {
-            cout << "Error running fishML" << endl;
-            _videoCanRun = false;
+            double timer = millis();
+            scoped_lock<mutex> frameLock(_frameMutex);
+            frameTrack = _frame.clone();
+        }
+        
+        if(frameTrack.empty())
+        {
+            if (_testMode == TestMode::ON) cout << "Error cloning frame" << endl;
             continue;
         }
-        cout << "Finished running fishML" << endl;
-    }
-    if (_testMode == TestMode::ON)
-        cout << "Time to run fishML: " << millis() - _timer << "ms" << endl;
-    if (_testMode == TestMode::ON)
-        _timer = millis();
+        
+        if (_testMode == TestMode::ON)
+            _timer = millis();
+        
+        // Run fishML
+        {
+            //scoped_lock<mutex> roiGuard(_roiMutex);
+            if (_fishMLWrapper.update(frameTrack, localObjDetectData) < 0)
+            {
+                if (_testMode == TestMode::ON) cout << "Error running fishML" << endl;
+                continue;
+            }
+        }
+        
+        if (_testMode == TestMode::ON)
+            cout << "Time to run fishML: " << millis() - _timer << "ms" << endl;
+        if (_testMode == TestMode::ON)
+            _timer = millis();
 
-    /*
+        // Run fish tracker
+        if (_fishTracker.run(frameTrack, _throwawayMutex, _fishIncremented, _fishDecremented, localObjDetectData, localTrackedData) < 0)
+        {
+            if (_testMode == TestMode::ON) cout << "Error running fish tracker" << endl;
+            continue;
+        }
 
-    // Run fish tracker
-    if (_fishTracker.run(frameTrack, _trackerMutex, _fishIncremented, _fishDecremented, _objDetectData, _trackedData) < 0)
-    {
-        cout << "Error running fish tracker" << endl;
-        continue;
+        if (_testMode == TestMode::ON)
+            cout << "Time to run fish tracker: " << millis() - _timer << "ms" << endl;
+
+        {
+            scoped_lock<std::mutex> updateLocks(_trackerMutex);
+            scoped_lock<std::mutex> updateLocks2(_roiMutex);
+
+            _objDetectData = localObjDetectData;
+            _trackedData = localTrackedData;
+        }
+
+        if(!_videoCanRun)
+        {
+            break;
+        }
     }
 
-    if (_testMode == TestMode::ON)
-        cout << "Time to run fish tracker: " << millis() - _timer << "ms" << endl;
-    
-	} 
-    */
-    }
     return 0;
 }
 
@@ -215,7 +212,7 @@ int fishMLBase::_getFrame()
         // Check if frame is empty
         if (_frame.empty())
         {
-            cout << "End of video" << endl;
+            if (_testMode == TestMode::ON) cout << "End of video" << endl;
             _videoCanRun = false;
             return -1;
         }
@@ -231,7 +228,7 @@ int fishMLBase::_getFrame()
 
 void fishMLBase::_draw()
 {
-    scoped_lock<mutex> lock(_runLock);
+    scoped_lock<mutex> lock(_runMutex);
 
     Mat frameDraw;
 
@@ -241,9 +238,8 @@ void fishMLBase::_draw()
         frameDraw = _frame.clone();
     }
     // Draw rectangles around ROIs and display score
-    /*
     {
-        scoped_lock<mutex> roiGuard(_roiLock);
+        scoped_lock<mutex> roiGuard(_roiMutex);
         for (auto obj : _objDetectData)
         {
             string rectPos = "Pos: <" + to_string(obj.ROI.x) + ", " + to_string(obj.ROI.y) + ">";
@@ -253,7 +249,7 @@ void fishMLBase::_draw()
             cv::putText(frameDraw, rectPos, Point(obj.ROI.x + 5, obj.ROI.y + 30), FONT_HERSHEY_SIMPLEX, 0.3, Scalar(155, 255, 255), 1);
         }
     }
-*/
+
     // Draw tracked fish
     {
         scoped_lock lock(_trackerMutex);

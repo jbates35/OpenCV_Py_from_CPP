@@ -17,58 +17,37 @@ model_file = os.path.join(script_dir, 'models/ssd_mobilenet_v2_face_quant_postpr
 interpreter = make_interpreter(model_file)
 interpreter.allocate_tensors()
 
+testing = False
 print("Interpreter loaded")
 
-    
 def fishML(mat):
-    assert isinstance(mat, np.ndarray), "Input must be a numpy.ndarray"
-
-    if 'cv2' not in sys.modules:
-        print("cv2 module is not loaded.")
-        return
-
-    # Convert the image to RGB format and resize it
-    print("Entering fishML from Python")
-    
-    
     # Crop the image taking only an roi of a square in the center
     height, width = mat.shape[:2]
-    print(width, height)
     
     center_x = int(width/2)
     center_y = int(height/2)
-    
     roi_size = min(width, height)
     
     x = center_x - int(roi_size/2)
     y = center_y - int(roi_size/2)
-
     mat = mat[y:y+roi_size, x:x+roi_size]
 
-    print("Cropping image")
-    
-    cv.imshow("cropped", mat)
-    
-    print("Changing colorspace")
-    
     mat = cv.cvtColor(mat, cv.COLOR_BGR2RGB)
     
-    print("Resizing image")
     size = common.input_size(interpreter)
     _, scale = common.set_resized_input(interpreter, mat.shape[:2], lambda size: cv.resize(mat, size))
     
-    print("Invoking interpreter")
     # Run an object detection
     interpreter.invoke()    
     objs = detect.get_objects(interpreter, 0.4, scale)
 
-    print("Interpreter invoked")
     # Create an empty list to store the rois
     returnRects = []
     
     # Print the result
     if not objs:
-        print ("No objects detected")
+        if testing:
+            print ("No objects detected")
         returnRects.append([-1, -1, -1, -1, -1])
         return returnRects
         
@@ -88,9 +67,7 @@ def fishML(mat):
     # Return the list of rois
     return returnRects
 
-
 import time
-testing = True
 
 def play_video():
     cwd = os.getcwd()

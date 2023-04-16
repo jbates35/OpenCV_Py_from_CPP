@@ -89,7 +89,7 @@ int FishMLWrapper::init()
       return -1;
    }
 
-   return 1;
+   return 0;
 }
 
 int FishMLWrapper::update(Mat &srcImg, vector<FishMLData> &objData)
@@ -100,79 +100,86 @@ int FishMLWrapper::update(Mat &srcImg, vector<FishMLData> &objData)
       return -1;
    }
 
-   cout << "Point 1 " << endl;
-
    //Convert Mat to numpy array
    npy_intp dims[3] = { srcImg. rows, srcImg.cols, srcImg.channels() };
    _pImg = PyArray_SimpleNewFromData(srcImg.dims + 1, (npy_intp*) & dims, NPY_UINT8, srcImg.data);
 
-   cout << "Point 2 " << endl;
-
-   //Create python argument list
-   _pArgs = PyTuple_New(1);
-   PyTuple_SetItem(_pArgs, 0, _pImg);
-
-   //Create return value pointer
-   _pReturn = PyObject_CallObject(_pFunc, _pArgs);
-
-   cout << "Point 3 " << endl;
-
-   //Make sure there's a return value
-   if (_pReturn == NULL)
+   //Check GIL state
+   if(!PyGILState_Check())
    {
-      PyErr_Print();
-      return -1;
-   }
+      //Release GIL and save thread state
+      PyThreadState* state = PyEval_SaveThread();
 
-   //Parse return value to vector of Rects
-   //First declare variables needed
-   vector<FishMLData> tempObjData;
+      //Re-acquire GIL and restore thread state
+      PyGILState_STATE gilState = PyGILState_Ensure();
 
-   //Get size of return value
-   Py_ssize_t rSize = PyList_Size(_pReturn);
+      //Create python argument list
+      _pArgs = PyTuple_New(1);
+      PyTuple_SetItem(_pArgs, 0, _pImg);
 
-   //Iterate through return value
-   for (Py_ssize_t i = 0; i < rSize; i++)
-   {
-      //This stores the iterated items which will form the rects later
-      _pROI = PyList_GetItem(_pReturn, i);
-      vector<int> rectVals;
+      //Create return value pointer
+      _pReturn = PyObject_CallObject(_pFunc, _pArgs);
 
-      //Parse through to get the rect coordinates
-      for (Py_ssize_t j = 0; j < 4; j++)
+      //Release GIL
+      PyGILState_Release(gilState);
+
+      //Restore thread state
+      PyEval_RestoreThread(state);
+
+      //Make sure there's a return value
+      if (_pReturn == NULL)
       {
-         // Get object of value, convert it to a c++ style int, and store it in the vector
-         _pVal = PyList_GetItem(_pROI, j);
-         int val = PyLong_AsLong(_pVal);
-         rectVals.push_back(val);
+         PyErr_Print();
+         return -1;
       }
-      //Get ID
-      _pVal = PyList_GetItem(_pROI, 4);
-      double score = PyFloat_AsDouble(_pVal);
 
-      //Create Rect from vector and dump for later
-      Rect ROI(rectVals[0], rectVals[1], rectVals[2], rectVals[3]);
+      //Parse return value to vector of Rects
+      //First declare variables needed
+      vector<FishMLData> tempObjData;
 
-      FishMLData data = { ROI, score };
+      //Get size of return value
+      Py_ssize_t rSize = PyList_Size(_pReturn);
 
-      tempObjData.push_back(data);
-   }
+      //Iterate through return value
+      for (Py_ssize_t i = 0; i < rSize; i++)
+      {
+         //This stores the iterated items which will form the rects later
+         _pROI = PyList_GetItem(_pReturn, i);
+         vector<int> rectVals;
 
-   cout << "Point 4 " << endl;
+         //Parse through to get the rect coordinates
+         for (Py_ssize_t j = 0; j < 4; j++)
+         {
+            // Get object of value, convert it to a c++ style int, and store it in the vector
+            _pVal = PyList_GetItem(_pROI, j);
+            int val = PyLong_AsLong(_pVal);
+            rectVals.push_back(val);
+         }
+         //Get ID
+         _pVal = PyList_GetItem(_pROI, 4);
+         double score = PyFloat_AsDouble(_pVal);
 
-   //Clear ROIs and store new ROIs
-   objData.clear();
+         //Create Rect from vector and dump for later
+         Rect ROI(rectVals[0], rectVals[1], rectVals[2], rectVals[3]);
 
-   //If no ROIs were found, return 0
-   if(tempObjData.size() == 1 && tempObjData[0].ROI.x == -1)
-   {
-      return 0;
-   }
+         FishMLData data = { ROI, score };
 
-   cout << "Point 5 " << endl;
+         tempObjData.push_back(data);
+      }
+
+      //Clear ROIs and store new ROIs
+      objData.clear();
+
+      //If no ROIs were found, return 0
+      if(tempObjData.size() == 1 && tempObjData[0].ROI.x == -1)
+      {
+         return -1;
+      }
+      
+      //Success, dump ROIs
+      objData = tempObjData;
    
-   //Success, dump ROIs
-   objData = tempObjData;
+   }
 
-   return 1;
+   return 0;
 }
