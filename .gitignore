@@ -12,3 +12,5 @@ py/ocvPyCpp/*
 py/vid/*.mp4
 py/vid/*.avi
 py/vid/*.mov
+py/savedfish/*
+py/savedfish

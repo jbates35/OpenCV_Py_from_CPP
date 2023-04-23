@@ -175,6 +175,16 @@ void fishMLBase::_draw()
     string fishDecrementedStr = "Fish moving backward: " + to_string(_fishDecremented);
     putText(_frame, fishDecrementedStr, Point(70, 20), FONT_HERSHEY_COMPLEX, 0.65, Scalar(255, 255, 255), 2);
 
+    int depth = 194;
+    string depthStr = "Depth: " + to_string(depth) + " mm";
+    putText(_frame, depthStr, Point(_frameSize.width/2 + 70, _frameSize.height - 20), FONT_HERSHEY_COMPLEX, 0.65, Scalar(255, 255, 255), 2);
+
+    double temperature = 13.85 + (0.1 * (floor(_frameCount/200)));
+
+    //Show only 2 decimal places
+    string temperatureStr = "Temperature: " + to_string(temperature).substr(0, 4) + " C";
+    putText(_frame, temperatureStr, Point(70, _frameSize.height - 20), FONT_HERSHEY_COMPLEX, 0.65, Scalar(255, 255, 255), 2);
+
     //Draw line down middle
     line(_frame, Point(_frameSize.width/2, 0), Point(_frameSize.width/2, _frameSize.height), Scalar(150, 255, 150), 1);
 
