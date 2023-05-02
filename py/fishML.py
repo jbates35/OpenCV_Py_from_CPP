@@ -11,7 +11,7 @@ from pycoral.utils.edgetpu import make_interpreter
 
 # Specify the TensorFlow model, labels, and image
 script_dir = pathlib.Path(__file__).parent.absolute()
-model_file = os.path.join(script_dir, 'models/ssd_mobilenet_v2_face_quant_postprocess_edgetpu.tflite')
+model_file = os.path.join(script_dir, 'models/efficientdet-lite-fishcens_edgetpu.tflite')
 
 # Initialize the TF interpreter
 interpreter = make_interpreter(model_file)
@@ -55,15 +55,17 @@ def fishML(mat):
         # Get the bounding box
         if testing:
             print ('x = ', obj.bbox.xmin, 'y = ', obj.bbox.ymin, 'w = ', obj.bbox.width, 'h = ', obj.bbox.height, 'score = ', obj.score)
-        xmin, ymin, xmax, ymax = obj.bbox
-        returnRects.append([
-            xmin + x, 
-            ymin + y, 
-            (xmax-xmin), 
-            (ymax-ymin),
-            obj.score
-            ]) 
             
+        if obj.score > 0.6:
+            xmin, ymin, xmax, ymax = obj.bbox    
+            returnRects.append([
+                xmin + x, 
+                ymin + y, 
+                (xmax-xmin), 
+                (ymax-ymin),
+                obj.score
+                ]) 
+                
     # Return the list of rois
     return returnRects
 

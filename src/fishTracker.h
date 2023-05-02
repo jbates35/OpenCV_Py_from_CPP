@@ -22,7 +22,7 @@ using namespace std;
 #define DEFAULT_COMBINED_RECT_AREA 500
 
 //Default region of ROI 
-#define DEFAULT_RECT_SCALE 0.5
+#define DEFAULT_RECT_SCALE 0.8
 
 //Proportional margin of the camera frame that will be 
 #define DEFAULT_MARGIN 0.05
@@ -73,7 +73,7 @@ namespace _ft
 	const int EXTRA_REFLECT_WIDTH = 10;
 	
 	//Amount of time tracker can last before deleting object
-	const double TRACKER_TIMEOUT_MILLIS = 500;
+	const double TRACKER_TIMEOUT_MILLIS = 2000;
 	const double TRACKER_TIMEOUT_MILLIS_CENTER = 5000;
 
 	//Default area of combined rect before it's considered "overlapping"
