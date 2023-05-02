@@ -293,7 +293,7 @@ int FishTracker::run(Mat& im, mutex& lock, int& fishIncrement, int& fishDecremen
 		bool trackedObjectOutdated = _fishTracker[i].currentTime > TRACKER_TIMEOUT_MILLIS;
 
 		//Delete if timeout and not in center
-		if (trackedObjectOutdated && !(_frameMiddle > _fishTracker[i].roi.x && _frameMiddle < _fishTracker[i].roi.x + _fishTracker[i].roi.width))
+		if (trackedObjectOutdated) // && !(_frameMiddle > _fishTracker[i].roi.x && _frameMiddle < _fishTracker[i].roi.x + _fishTracker[i].roi.width))
 		{
 			_fishTracker.erase(_fishTracker.begin() + i);
 			continue; // Move onto next iteration
