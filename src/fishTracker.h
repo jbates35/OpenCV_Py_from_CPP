@@ -278,8 +278,9 @@ private:
 	int _minCombinedRectArea; // Minimum shared area between overlapping rects
 	
 	//Parameters for tracking
+	TrackerKCF::Params _params;
 	vector<FishTrackerStruct> _fishTracker; //Holds all tracked object information
-	float _marginProportion; //Essentially, percentage margins should be set to to consider object "on the edge"
+	float _marginProportion; //Ess	entially, percentage margins should be set to to consider object "on the edge"
 	int _retrackPixels; //When occlusion occurs, what size of area around the ROI to look for an untracked object
 	int _retrackFrames; //When an object has been lost, how many frames to keep looking for the object before deleting object from vector
 	float _rectROIScale; //What percentage to delete from the roi when tracking

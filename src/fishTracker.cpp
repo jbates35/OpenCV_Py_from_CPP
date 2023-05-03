@@ -263,8 +263,7 @@ int FishTracker::generate(Mat& im, vector<FishMLData>& detectedObjects)
 				fish.isTracked = true;
 					
 				//Re-initialize the tracker with the new coordinates
-				TrackerKCF::Params params;
-				fish.tracker = TrackerKCF::create(params);
+				fish.tracker = TrackerKCF::create(_params);
 				fish.tracker->init(im, contourRectROI);
 				
 				break;
@@ -293,7 +292,7 @@ int FishTracker::generate(Mat& im, vector<FishMLData>& detectedObjects)
 			//Initialize struct that keeps track of the tracking info
 			FishTrackerStruct tempTracker;					
 			tempTracker.isTracked = true;
-			tempTracker.tracker = TrackerKCF::create();					
+			tempTracker.tracker = TrackerKCF::create(_params);					
 			tempTracker.tracker->init(im, contourRectROI);
 			tempTracker.roi = contourRectROI;
 			tempTracker.posX.push_back(contourRectROI.x + contourRectROI.width / 2);
@@ -351,6 +350,11 @@ int FishTracker::init(Size frameSize)
 	//Test mode to display possible helpful debugging parameters
 	_programMode = ftMode::TRACKING;
 	
+	//Some tracker stuff
+	_params = TrackerKCF::Params();
+	_params.sigma = 0.4f;
+	_params.detect_thresh = 0.3f;
+	_params.resize = true;
 	return 0;
 }
 
