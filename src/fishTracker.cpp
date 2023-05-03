@@ -33,6 +33,12 @@ int FishTracker::update(Mat& im, int& fishIncrement, int& fishDecrement, vector<
 		return -1;
 	}
 
+	if(im.size() != _frameSize)
+	{
+		cout << "ERROR: Frame size does not match in FishTracker::update()\n";
+		return -1;
+	}
+
 	//Update tracker, and ensure it's running
 	//THIS FOLLOWING CODE MAY BE HARD TO READ AND MIGHT NEED TO BE CLEANED UP SOMEHOW
 	for (int i = _fishTracker.size() - 1; i >= 0; i--) 
