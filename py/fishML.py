@@ -73,7 +73,7 @@ import time
 
 def play_video():
     cwd = os.getcwd()
-    cap = cv.VideoCapture(cwd + '/vid/griffin.mp4')
+    cap = cv.VideoCapture(cwd + '/vid/fish_dark_trimmed_2.mov')
 
     while (cap.isOpened()):
 

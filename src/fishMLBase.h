@@ -52,13 +52,20 @@ private:
     void _draw();
     static void _drawThread(fishMLBase* fishMLBasePtr);
 
+    void _trackerUpdate();
+    static void _trackerUpdateThread(fishMLBase* fishMLBasePtr);
+
+    void _MLUpdate();
+    static void _MLUpdateThread(fishMLBase* fishMLBasePtr);
+
     FishMLWrapper _fishMLWrapper;
     vector<FishMLData> _objDetectData;
 
     map<string, double> _fishTimers;
 
-    mutex _frameMutex, _drawMutex, _trackerMutex, _updateMutex, _runMutex, _roiMutex, _throwawayMutex;
-
+    std::mutex _frameMutex, _drawMutex, _trackerMutex, _updateMutex, _runMutex, _roiMutex, _throwawayMutex;
+    std::mutex _singletonTracker, _singletonML;
+    
     Mat _frame, _framePrev;
     double _scaleFactor;
     VideoCapture _cap;

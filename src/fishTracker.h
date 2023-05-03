@@ -123,16 +123,25 @@ public:
      **/
 	~FishTracker();
 	
-    /**
-     * @brief Run thread for parent class
-     * @param im - Main image from VideoCapture (do video >> frame and pass that)
+	/**
+	 * @brief Updates tracker and information
      * @param imProcessed Image that's processed, mainly for calibrating/testing (think of this as a return)
+	 * @param lock Mutex passed from parent class
+	 * @param fishIncrement Amount of fish counted to be incremented
+	 * @param fishDecrement Amount of fish counted to be decrement
+	 * @param trackedObjects Vector of tracked objects from parent class
+	*/
+	int update(Mat &im, int &fishIncrement, int &fishDecrement, vector<FishTrackerStruct> &trackedObjects);
+
+    /**
+     * @brief Takes the identified fish and generates new tracking objects
+     * @param im - Main image from VideoCapture (do video >> frame and pass that)
      * @param lock Mutex passed from parent class
-     * @param fishCount Amount of fish counted via 
-     * @param ROIRects Vector of ROI rects parent class can have updated
+     * @param detectedObjects Vector of detected objects from machine learning
+	 * @param trackedObjects Parent class's struct that keeps track of ROIs and stuff like that
      * @return True if success, false if im is empty 
      **/
-	int run(Mat& im, mutex& lock, int& fishIncrement, int& fishDecrement, vector<FishMLData>& detectedObjects, vector<FishTrackerStruct>& trackedObjects);
+	int generate(Mat &im, vector<FishMLData> &detectedObjects);
 	
     /**
      * @brief Initializer (And reinitializer) for most important parameters of class
@@ -149,97 +158,97 @@ public:
     * @brief Setter for margin of the camera shot that occlusion detection works on
     * @param marginProportion Proportion of frame that gets considered edge (default 0.1)
     **/
-	void setMargin(float marginProportion);
+	void setMargin(float marginProportion) { _marginProportion = marginProportion; }
 	
     /**
     * @brief Getter of margin of the camera shot that occlusion detection works on
     * @return Proportion of frame that is considered edge
     **/
-	float getMargin();
+	float getMargin() { return _marginProportion; }
 	
 	/**
     * @brief Setter for retrack region - When an object is lost in the middle of the frame, the tracker will attempt to find an untracked object that is THIS amount of pixels around the latest ROI
     * @param retrackPixels Region around the latest tracker's ROI it will attempt to look for an untracked object (default is 100)
     **/
-	void setRetrackRegion(int retrackPixels);
+	void setRetrackRegion(int retrackPixels) { _retrackPixels = retrackPixels;}
 	
     /**
     * @brief Getter for retrack region - When an object is lost in the middle of the frame, the tracker will attempt to find an untracked object that is THIS amount of pixels around the latest ROI
     * @return Region around the latest tracker's ROI it will attempt to look for an untracked object
     **/
-	int getRetrackRegion();
+	int getRetrackRegion() { return _retrackPixels; }
 	
 	/**
     * @brief Setter for retrackFrames
     * @param retrackFrames Once an object is lost, the amount of frames the tracker will look for the object before deleting the tracker from the tracker vector (default is 5)
     **/
-	void setRetrackFrames(int retrackFrames);
+	void setRetrackFrames(int retrackFrames) { _retrackFrames = retrackFrames; }
 	
     /**
     * @brief Getter for retrackFrames
     * @return Once an object is lost, the amount of frames the tracker will look for the object before deleting the tracker from the tracker vector (default is 5)
     **/
-	int getRetrackFrames();	
+	int getRetrackFrames() { return _retrackFrames; }
 	
 	/**
     * @brief Setter for rectROIScale
     * @param rectROIScale Once the contours of an image is found, the ROI can be scaled by this amount before being fed into the Tracker
     **/
-	void setROIScale(float rectROIScale);	
+	void setROIScale(float rectROIScale) { _rectROIScale = rectROIScale; }
 	
     /**
     * @brief Getter for rectROIScale
     * @return Once the contours of an image is found, the ROI can be scaled by this amount before being fed into the Tracker
     **/
-	float getROIScale();
+	float getROIScale() { return _rectROIScale; }
 	
 	/**
     * @brief Setter for threshhold minimum area
     * @param minArea Minimum area that a thresholded contour has to be in order to be thrown into the tracker algorithm
     **/
-	void setMinThresholdArea(int minArea);
+	void setMinThresholdArea(int minArea) { _minThresholdArea = minArea; }
 	
     /**
     * @brief Getter for threshhold minimum area
     * @return Minimum area that a thresholded contour has to be in order to be thrown into the tracker algorithm
     **/
-	int getMinThresholdArea();
+	int getMinThresholdArea() { return _minThresholdArea; }
 	
 	/**
     * @brief Setter for minimum combined rect area
     * @param minArea Minimum area two ROIs must be before it's considered "overlapped"
     **/
-	void setMinCombinedRectArea(int minArea);
+	void setMinCombinedRectArea(int minArea) { _minCombinedRectArea = minArea; }
 	
     /**
     * @brief Getter for minimum combined rect area
     * @return Minimum area two ROIs must be before it's considered "overlapped"
     **/
-	int getMinCombinedRectArea();
+	int getMinCombinedRectArea() { return _minCombinedRectArea; }
 	
 	/**
     * @brief Setter for frameCenter (overrides the initial value)
     * @param center The center of frame that is used to see if the fish have crossed, increments/decrements fishcounter accordingly
     **/
-	void setFrameCenter(int center);
+	void setFrameCenter(int center) { _frameMiddle = center; }
 	
     /**
     * @brief Getter for frameCenter
     * @param center The center of frame that is used to see if the fish have crossed, increments/decrements fishcounter accordingly
     **/
-	int getFrameCenter();
+	int getFrameCenter() { return _frameMiddle; }
 	
 	/**
     * @brief Setter for filepath
     * @param filepath Path that the logger and other files that are saved will get saved to
     **/
-	void setFilepath(string filepath);	
+	void setFilepath(string filepath) { _loggerFilepath = filepath; }
 	
 	/**
     * @brief Setter for filename
     * @param filename Name of prefix parts of the filename
     **/
-	void setFilename(string filename);
+	void setFilename(string filename) { _loggerFilename = filename; }
 	
 	/**
     * @brief At that moment, saves all the information in the log stringstreams to a file
@@ -252,7 +261,7 @@ public:
 	 * @brief Sets _programMode for either calibration, run, etc.
 	 * @param mode Refer to enums for list of modes
 	 **/
-	void setMode(ftMode mode);
+	void setMode(ftMode mode) { _programMode = mode; }
 	
 	/**
 	 *	@brief Describes whether the tracker is object or not
@@ -264,7 +273,7 @@ public:
 	 *	@brief Returns amount of fishTracker objects being tracked
 	 *	@return Size of vector
 	 **/
-	int trackerAmount();
+	int trackerAmount() { return _fishTracker.size(); }
 	
 	/**
 	 ** @brief Turns testing mode on or off to show important parameters on screen
