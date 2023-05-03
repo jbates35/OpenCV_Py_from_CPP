@@ -154,15 +154,23 @@ int fishMLBase::_update()
         
         if (_testMode == TestMode::ON)
             _timer = millis();
-        
-        // Run fishML
+
+        if(_fishTracker.update(frameTrack, _throwawayMutex, _fishIncremented, _fishDecremented, localTrackedData) < 0)
         {
-            //scoped_lock<mutex> roiGuard(_roiMutex);
-            if (_fishMLWrapper.update(frameTrack, localObjDetectData) < 0)
-            {
-                if (_testMode == TestMode::ON) cout << "Error running fishML" << endl;
-                continue;
-            }
+            if (_testMode == TestMode::ON) cout << "Error running fish tracker updater" << endl;
+            continue;
+        }
+        
+        if(_testMode == TestMode::ON)
+            cout << "Time to run fish tracker updater: " << millis() - _timer << "ms" << endl;
+        if(_testMode == TestMode::ON)
+            _timer = millis();
+
+        // Run fishML
+        if (_fishMLWrapper.update(frameTrack, localObjDetectData) < 0)
+        {
+            if (_testMode == TestMode::ON) cout << "Error running fishML" << endl;
+            continue;
         }
         
         if (_testMode == TestMode::ON)
@@ -171,7 +179,7 @@ int fishMLBase::_update()
             _timer = millis();
 
         // Run fish tracker
-        if (_fishTracker.run(frameTrack, _throwawayMutex, _fishIncremented, _fishDecremented, localObjDetectData, localTrackedData) < 0)
+        if (_fishTracker.generate(frameTrack, _throwawayMutex, localObjDetectData, localTrackedData) < 0)
         {
             if (_testMode == TestMode::ON) cout << "Error running fish tracker" << endl;
             continue;
@@ -229,6 +237,9 @@ int fishMLBase::_getFrame()
 void fishMLBase::_draw()
 {
     scoped_lock<mutex> lock(_runMutex);
+
+    if(_testMode == TestMode::ON)
+        _timer = millis();
 
     Mat frameDraw;
 
@@ -305,6 +316,9 @@ void fishMLBase::_draw()
         // Press ESC on keyboard to exit
         _returnKey = waitKey(25);
     }
+
+    if(_testMode == TestMode::ON)
+        cout << "Time to draw frame: " << millis() - _timer << "ms" << endl;
 }
 
 void fishMLBase::_drawThread(fishMLBase *fishMLBasePtr)
