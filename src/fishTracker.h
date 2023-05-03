@@ -22,7 +22,7 @@ using namespace std;
 #define DEFAULT_COMBINED_RECT_AREA 500
 
 //Default region of ROI 
-#define DEFAULT_RECT_SCALE 0.8
+#define DEFAULT_RECT_SCALE 0.9
 
 //Proportional margin of the camera frame that will be 
 #define DEFAULT_MARGIN 0.05
@@ -239,25 +239,6 @@ public:
 	int getFrameCenter() { return _frameMiddle; }
 	
 	/**
-    * @brief Setter for filepath
-    * @param filepath Path that the logger and other files that are saved will get saved to
-    **/
-	void setFilepath(string filepath) { _loggerFilepath = filepath; }
-	
-	/**
-    * @brief Setter for filename
-    * @param filename Name of prefix parts of the filename
-    **/
-	void setFilename(string filename) { _loggerFilename = filename; }
-	
-	/**
-    * @brief At that moment, saves all the information in the log stringstreams to a file
-    * @param fileName If something is put in, will save to this file name
-    * @param filePath If something is put in, will save to this file path
-    **/
-	void saveLogger(string fileName = NULL, string filePath = NULL);
-	
-	/**
 	 * @brief Sets _programMode for either calibration, run, etc.
 	 * @param mode Refer to enums for list of modes
 	 **/
@@ -310,20 +291,12 @@ private:
 	
 	//Parameters for logging
 	double _timer; //For putting elapsed times in
-	string _startTime;
-	string _loggerFilepath;
-	string _loggerFilename;
-	vector<string> _loggerData; // Keeps track of important events that happen
-	vector<double> _loggerCsv; // Writes elapsed tracking computation times 
-	
+
 	//Other important data
 	ftMode _programMode;
-	
+
 	/////////// FUNCTIONS /////////////
-	
-	//Get date and time in yyyy_mm_dd_hxxmxxsxx
-	string _getTime();
-	void _logger(vector<string>& logger, string data);
+
 	vector<Rect> _getRects();
 	
 };

@@ -86,6 +86,7 @@ private:
 
     TestMode _testMode;
     VideoWriteMode _videoWriteMode;
+	vector<Mat> _videoRecordMats;
 
     Size _frameSize;
 

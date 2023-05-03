@@ -112,8 +112,8 @@ int fishMLBase::init()
     _fishTimers["draw"] = millis();
     _fishTimers["update"] = millis();
 
-    thread updateThread(_updateThread, this);   
-    updateThread.detach();
+    // thread updateThread(_updateThread, this);   
+    // updateThread.detach();
    
     return 0;
 
@@ -126,7 +126,13 @@ int fishMLBase::run()
     {
         _fishTimers["draw"] = millis();
 	    _getFrame();
+
+        thread trackerThread(_trackerUpdateThread, this);
+        thread MLThread (_MLUpdateThread, this);
         thread drawThread(_drawThread, this);
+        
+        trackerThread.detach();
+        MLThread.detach();
         drawThread.detach();
     }
     return 0;
@@ -136,8 +142,7 @@ int fishMLBase::_update()
 {
 	while(1)
 	{
-        _trackerUpdate();
-        _MLUpdate();
+
 
         if(!_videoCanRun)
         {
@@ -181,9 +186,6 @@ void fishMLBase::_draw()
 {
     scoped_lock lock(_runMutex);    
     
-    if(_testMode == TestMode::ON)
-        _timer = millis();
-
     Mat frameDraw;
     {
         scoped_lock frameLock(_frameMutex);
@@ -198,15 +200,6 @@ void fishMLBase::_draw()
         localObjDetectData = _objDetectData;
     }
 
-    for (auto obj : localObjDetectData)
-    {
-        string rectPos = "Pos: <" + to_string(obj.ROI.x) + ", " + to_string(obj.ROI.y) + ">";
-        string score = "Score: " + to_string(obj.score);
-        cv::rectangle(frameDraw, obj.ROI, Scalar(200, 90, 185), 1);
-        cv::putText(frameDraw, score, Point(obj.ROI.x + 5, obj.ROI.y + 15), FONT_HERSHEY_SIMPLEX, 0.3, Scalar(155, 255, 255), 1);
-        cv::putText(frameDraw, rectPos, Point(obj.ROI.x + 5, obj.ROI.y + 30), FONT_HERSHEY_SIMPLEX, 0.3, Scalar(155, 255, 255), 1);
-    }
-
     // Draw tracked fish
     vector<FishTrackerStruct> localTrackedData;
     int localFishInc, localFishDec;
@@ -215,6 +208,18 @@ void fishMLBase::_draw()
         localTrackedData = _trackedData;
         localFishInc = _fishIncremented;
         localFishDec = _fishDecremented;
+    }
+
+    if(_testMode == TestMode::ON)
+        _timer = millis();
+
+    for (auto obj : localObjDetectData)
+    {
+        string rectPos = "Pos: <" + to_string(obj.ROI.x) + ", " + to_string(obj.ROI.y) + ">";
+        string score = "Score: " + to_string(obj.score);
+        cv::rectangle(frameDraw, obj.ROI, Scalar(200, 90, 185), 1);
+        cv::putText(frameDraw, score, Point(obj.ROI.x + 5, obj.ROI.y + 15), FONT_HERSHEY_SIMPLEX, 0.3, Scalar(155, 255, 255), 1);
+        cv::putText(frameDraw, rectPos, Point(obj.ROI.x + 5, obj.ROI.y + 30), FONT_HERSHEY_SIMPLEX, 0.3, Scalar(155, 255, 255), 1);
     }
 
     for (auto fish : localTrackedData)
@@ -271,6 +276,8 @@ void fishMLBase::_draw()
 
     if(_testMode == TestMode::ON)
         cout << "Time to draw frame: " << millis() - _timer << "ms" << endl;
+
+
 }
 
 void fishMLBase::_drawThread(fishMLBase *fishMLBasePtr)
@@ -282,9 +289,6 @@ void fishMLBase::_drawThread(fishMLBase *fishMLBasePtr)
 void fishMLBase::_trackerUpdate()
 {
     std::scoped_lock singleLock(_singletonTracker);
-
-    if(_testMode == TestMode::ON)
-        _timer = millis();
 
     // Copy parameters to local variables to avoid problems in concurrency
     Mat localFrame;
@@ -302,10 +306,16 @@ void fishMLBase::_trackerUpdate()
         localFishDec = _fishDecremented;
     }
 
+    if(_testMode == TestMode::ON)
+        _timer = millis();
+
     if(_fishTracker.update(localFrame, localFishInc, localFishDec, localTrackedData) < 0)
     {
         if (_testMode == TestMode::ON) cout << "Error running fish tracker updater" << endl;
     }
+
+    if(_testMode == TestMode::ON)
+        cout << "Time to update tracker: " << millis() - _timer << "ms" << endl;
 
     //Store back into class variables
     {
@@ -314,9 +324,6 @@ void fishMLBase::_trackerUpdate()
         _fishIncremented = localFishInc;
         _fishDecremented = localFishDec;
     }
-
-    if(_testMode == TestMode::ON)
-        cout << "Time to update tracker: " << millis() - _timer << "ms" << endl;
 }
 
 void fishMLBase::_trackerUpdateThread(fishMLBase *fishMLBasePtr)
@@ -327,7 +334,7 @@ void fishMLBase::_trackerUpdateThread(fishMLBase *fishMLBasePtr)
 void fishMLBase::_MLUpdate()
 {
     std::scoped_lock singleLock(_singletonML);
-    
+
     // Copy parameters to local variables to avoid problems in concurrency
     Mat localFrame;
     {
@@ -362,7 +369,7 @@ void fishMLBase::_MLUpdate()
     }
 
     if (_testMode == TestMode::ON)
-        cout << "Time to run fish tracker: " << millis() - _timer << "ms" << endl;
+        cout << "Time to generate fish trackers: " << millis() - _timer << "ms" << endl;
 
     // Store data back into class variable
     {

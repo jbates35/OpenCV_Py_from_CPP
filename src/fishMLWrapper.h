@@ -34,6 +34,13 @@ public:
    ~FishMLWrapper();
 
    int init();
+
+   /**
+    * @brief Updates the ML model with the given image and returns the ROIs
+    * @param srcImg The image to be processed from opencv (camera shot)
+    * @param objData Vector of ROIs from parent class that get updated at end
+    * @return -1 if error, 0 if nothing found, 1 if things found
+   */
    int update(Mat &srcImg, vector<FishMLData> &objData);
 
 private:

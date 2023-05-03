@@ -309,11 +309,7 @@ int FishTracker::init(Size frameSize)
 {
 	//Clear fish tracking vector
 	_fishTracker.clear();
-	
-	//Emptying data vectors	
-	_loggerData.clear();
-	_loggerCsv.clear();
-	
+		
 	//Test mode for seeing important parameters
 	_testing = false;
 
@@ -346,11 +342,6 @@ int FishTracker::init(Size frameSize)
 	//Proportion of ROI to scale down by to increase computational speed of tracker
 	_rectROIScale = DEFAULT_RECT_SCALE;
 		
-	//Defaults for logger path and filename
-	_startTime = _getTime();
-	_loggerFilename = "data_" + _startTime;
-	_loggerFilepath = DEFAULT_FILE_PATH;
-	
 	//Test mode to display possible helpful debugging parameters
 	_programMode = ftMode::TRACKING;
 	
@@ -361,128 +352,6 @@ int FishTracker::init(Size frameSize)
 bool FishTracker::isTracking()
 {
 	return _fishTracker.size() > 0;
-}
-
-//Helper that gets the current time in ymd hms and returns a string
-std::string FishTracker::_getTime()
-{
-	//Create unique timestamp for folder
-	stringstream timestamp;
-	
-	//First, create struct which contains time values
-	time_t now = time(0);
-	tm *ltm = localtime(&now);
-	
-	//Store stringstream with numbers	
-	timestamp << 1900 + ltm->tm_year << "_";
-	
-	//Zero-pad month
-	if ((1 + ltm->tm_mon) < 10) 
-	{
-		timestamp << "0";
-	}
-	
-	timestamp << 1 + ltm->tm_mon << "_";
-	
-	//Zero-pad day
-	if ((1 + ltm->tm_mday) < 10) 
-	{
-		timestamp << "0";
-	}
-	
-	timestamp << ltm->tm_mday << "_";
-	
-	//Zero-pad hours
-	if (ltm->tm_hour < 10) 
-	{
-		timestamp << "0";
-	}
-	
-	timestamp << ltm->tm_hour << "h";
-	
-	//Zero-pad minutes
-	if (ltm->tm_min < 10) 
-	{
-		timestamp << "0";
-	}
-	
-	timestamp << ltm->tm_min << "m";
-	
-	//Zero-pad seconds
-	if (ltm->tm_sec < 10) 
-	{
-		timestamp << "0";
-	}
-	
-	timestamp << ltm->tm_sec << "s";
-	
-	//Return string version of ss
-	return timestamp.str();
-}
-
-//Helper function for 
-void FishTracker::_logger(vector<string>& logger, string data)
-{
-	//Clear first entry in the vector if buffer size is full
-	if (logger.size() > MAX_DATA_SIZE)
-	{
-		logger.erase(logger.begin());
-	}
-	
-	string logString = _getTime() + ": " + data;
-	//cout << logString << "\n";
-	logger.push_back(logString);
-}
-
-//Saves both data and elapsed tracking frame times to files
-void FishTracker::saveLogger(string fileName /* = NULL */, string filePath /* = NULL */)
-{
-	//Use file-name stored in object if filename is blank
-	if (fileName.empty())
-	{
-		fileName = _loggerFilename;		
-	}
-	
-	//Use folder-path stored in object if filePath is blank
-	if (filePath.empty())
-	{
-		filePath = _loggerFilepath;
-	}
-	
-	//Add slash if folder-path does not end in slash so filename doesn't merge with the folder it's in
-	if (filePath[filePath.size() - 1] != '/')
-	{
-		filePath += '/';
-	}
-	
-	//Make sure file doesn't end in ".txt" if we end up being knobs and accidentally adding it
-	stringstream tempSString(fileName);
-	string tempString;
-	fileName = "";
-	
-	while (getline(tempSString, tempString, '.'))
-	{
-		if (tempString != "csv" && tempString != "txt")
-		{
-			fileName += tempString;
-		}
-	}
-	
-	//Create txt file for data and then store the data
-	ofstream outFileData(filePath + fileName + ".txt");
-	for (auto line : _loggerData)
-	{
-		outFileData << line;
-	}
-	outFileData.close();
-	
-	//Create CSV file and store data
-	ofstream outFileCSV(filePath + fileName + ".csv");
-	for (auto val : _loggerCsv) 
-	{
-		outFileCSV << to_string(val) << "\n";
-	}
-	outFileCSV.close();
 }
 
 //Helper function to pull ROIs from fishTracker vector and return them as its own vector
