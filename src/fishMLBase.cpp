@@ -38,6 +38,8 @@ int fishMLBase::init()
     _trackerCanRun = false;
     _trackerRunning = false;
 
+    _MLReady=false;
+
     // List all files
     if (getVideoEntry(_selectedVideo) < 0)
     {
@@ -127,22 +129,40 @@ int fishMLBase::run()
         _fishTimers["draw"] = millis();
 	    _getFrame();
 
-        thread trackerThread(_trackerUpdateThread, this);
-        thread MLThread (_MLUpdateThread, this);
         thread drawThread(_drawThread, this);
-        
-        trackerThread.detach();
-        MLThread.detach();
         drawThread.detach();
     }
+
+    if (millis() - _fishTimers["update"] > (double) 1000.0/UPDATE_FPS)
+    {
+        _fishTimers["update"] = millis();
+
+        thread trackerThread(_trackerUpdateThread, this);
+        trackerThread.detach();
+
+        thread MLThread (_MLUpdateThread, this);
+        MLThread.detach();
+    }
+
     return 0;
 }
 
 int fishMLBase::_update()
 {
+    double localTimer = millis();
 	while(1)
 	{
+        cout << "Loop time: " << millis() - localTimer << endl;
+        localTimer = millis();
 
+        thread trackerThread(_trackerUpdateThread, this);
+        trackerThread.detach();
+
+        thread MLThread (_MLUpdateThread, this);
+        MLThread.detach();
+
+        // _trackerUpdate();
+        // _MLUpdate();
 
         if(!_videoCanRun)
         {
@@ -160,22 +180,35 @@ void fishMLBase::_updateThread(fishMLBase *fishMLBasePtr)
 
 int fishMLBase::_getFrame()
 {
+    Mat localFrame;
     {
-        scoped_lock lock(_frameMutex);
+        //scoped_lock lock(_frameMutex);
         // Read frame
-        _cap >> _frame;
+        _cap >> localFrame;
 
         // Check if frame is empty
-        if (_frame.empty())
+        if (localFrame.empty())
         {
             if (_testMode == TestMode::ON) cout << "End of video" << endl;
             _videoCanRun = false;
             return -1;
         }
 
-        resize(_frame, _frame, Size(), _scaleFactor, _scaleFactor);
+        resize(localFrame, localFrame, Size(), _scaleFactor, _scaleFactor);
     }
 
+    {
+        unique_lock lock(_frameMutex, try_to_lock);
+        if (lock.owns_lock())
+        {
+            _frame = localFrame;
+        }
+        else
+        {
+            cout << "Frame skipped" << endl;
+            //if (_testMode == TestMode::ON) cout << "Frame skipped" << endl;
+        }
+    }
     _trackerCanRun = true;
     _frameCount++;
 
@@ -184,12 +217,17 @@ int fishMLBase::_getFrame()
 
 void fishMLBase::_draw()
 {
-    scoped_lock lock(_runMutex);    
+    std::unique_lock<std::mutex> singleLock(_singletonDraw);
     
+    if(!singleLock.owns_lock())
+    {
+        return;
+    }
+
+    // Make copy of frame for drawing
     Mat frameDraw;
     {
         scoped_lock frameLock(_frameMutex);
-        // Make copy of frame for drawing
         frameDraw = _frame.clone();
     }
 
@@ -201,7 +239,7 @@ void fishMLBase::_draw()
     }
 
     // Draw tracked fish
-    vector<FishTrackerStruct> localTrackedData;
+    vector<TrackedObjectData> localTrackedData;
     int localFishInc, localFishDec;
     {
         scoped_lock trackerLock(_trackerMutex);
@@ -288,7 +326,15 @@ void fishMLBase::_drawThread(fishMLBase *fishMLBasePtr)
 
 void fishMLBase::_trackerUpdate()
 {
-    std::scoped_lock singleLock(_singletonTracker);
+    std::unique_lock<std::mutex> singleLock(_singletonTracker, std::try_to_lock);
+
+    if(!singleLock.owns_lock())
+    {
+        return;
+    }
+
+    cout << "Tracker loop time: " << millis() -  _fishTimers["Tracker"] << "ms" << endl;
+    _fishTimers["Tracker"] = millis();
 
     // Copy parameters to local variables to avoid problems in concurrency
     Mat localFrame;
@@ -297,7 +343,7 @@ void fishMLBase::_trackerUpdate()
         localFrame = _frame.clone();
     }
 
-    vector<FishTrackerStruct> localTrackedData;
+    vector<TrackedObjectData> localTrackedData;
     int localFishInc, localFishDec;    
     {
         scoped_lock trackerLock(_trackerMutex);
@@ -317,6 +363,29 @@ void fishMLBase::_trackerUpdate()
     if(_testMode == TestMode::ON)
         cout << "Time to update tracker: " << millis() - _timer << "ms" << endl;
 
+    if (_testMode == TestMode::ON)
+        _timer = millis();
+
+    vector<FishMLData> localObjDetectData;
+    bool localMLReady;
+    {
+        scoped_lock objDetectLock(_roiMutex);
+        localObjDetectData = _objDetectData;
+        localMLReady = _MLReady;
+        _MLReady=false;
+    }
+
+    // Run fish tracker
+    if (localMLReady)
+        if (_fishTracker.generate(localFrame, localObjDetectData) < 0 && _testMode == TestMode::ON)
+        {
+            cout << "Error running fish tracker" << endl;
+        }
+
+    if (_testMode == TestMode::ON)
+        cout << "Time to generate fish trackers: " << millis() - _timer << "ms" << endl;
+
+
     //Store back into class variables
     {
         scoped_lock trackerLock(_trackerMutex);
@@ -333,7 +402,15 @@ void fishMLBase::_trackerUpdateThread(fishMLBase *fishMLBasePtr)
 
 void fishMLBase::_MLUpdate()
 {
-    std::scoped_lock singleLock(_singletonML);
+    std::unique_lock<std::mutex> singleLock(_singletonML, std::try_to_lock);
+
+    if(!singleLock.owns_lock())
+    {
+        return;
+    }
+
+    cout << "ML update loop time: " << millis() -  _fishTimers["ML"] << "ms" << endl;
+    _fishTimers["ML"] = millis();
 
     // Copy parameters to local variables to avoid problems in concurrency
     Mat localFrame;
@@ -359,22 +436,24 @@ void fishMLBase::_MLUpdate()
     
     if (_testMode == TestMode::ON)
         cout << "Time to run fishML: " << millis() - _timer << "ms" << endl;
-    if (_testMode == TestMode::ON)
-        _timer = millis();
 
-    // Run fish tracker
-    if (_fishTracker.generate(localFrame, localObjDetectData) < 0)
-    {
-        if (_testMode == TestMode::ON) cout << "Error running fish tracker" << endl;
-    }
+    // if (_testMode == TestMode::ON)
+    //     _timer = millis();
 
-    if (_testMode == TestMode::ON)
-        cout << "Time to generate fish trackers: " << millis() - _timer << "ms" << endl;
+    // // Run fish tracker
+    // if (_fishTracker.generate(localFrame, localObjDetectData) < 0)
+    // {
+    //     if (_testMode == TestMode::ON) cout << "Error running fish tracker" << endl;
+    // }
+
+    // if (_testMode == TestMode::ON)
+    //     cout << "Time to generate fish trackers: " << millis() - _timer << "ms" << endl;
 
     // Store data back into class variable
     {
         scoped_lock objDetectLock(_roiMutex);
         _objDetectData = localObjDetectData;
+        _MLReady=true;
     }
 }
 

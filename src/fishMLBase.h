@@ -14,6 +14,7 @@
 
 const int FRAME_MAX_HEIGHT = 300;
 const double DRAW_FPS = 30;
+const double UPDATE_FPS = 60;
 
 using namespace std;
 
@@ -64,7 +65,7 @@ private:
     map<string, double> _fishTimers;
 
     std::mutex _frameMutex, _drawMutex, _trackerMutex, _updateMutex, _runMutex, _roiMutex, _throwawayMutex;
-    std::mutex _singletonTracker, _singletonML;
+    std::mutex _singletonTracker, _singletonML, _singletonDraw;
     
     Mat _frame, _framePrev;
     double _scaleFactor;
@@ -74,7 +75,7 @@ private:
     int _frameTotal;
 
     FishTracker _fishTracker;
-    vector<FishTrackerStruct> _trackedData;
+    vector<TrackedObjectData> _trackedData;
     vector<Rect> _detectedFishROI;
     int _fishIncremented;
     int _fishDecremented;
@@ -96,4 +97,6 @@ private:
 
     bool _updateRunning;
     bool _drawRunning;
+
+    bool _MLReady;
 };

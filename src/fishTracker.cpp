@@ -17,7 +17,7 @@ FishTracker::~FishTracker()
 	cout << "\tNOTE: FishTracker destroyed\n";
 }
 
-int FishTracker::update(Mat& im, int& fishIncrement, int& fishDecrement, vector<FishTrackerStruct>& trackedObjects)
+int FishTracker::update(Mat &im, int &fishIncrement, int &fishDecrement, vector<TrackedObjectData> &trackedObjects)
 {
 	//First, get edges for comparison at multiple times through loop
 	vector<Rect> edges;
@@ -26,6 +26,11 @@ int FishTracker::update(Mat& im, int& fishIncrement, int& fishDecrement, vector<
 	edges.push_back(Rect(0, _frameSize.height - 2, _frameSize.width, 2)); // bottom edge
 	edges.push_back(Rect(0, 0, _frameSize.width, 2)); // top edge
 	
+	//These are to get rid of the ROIs that seem to pop up out of nowhere in the center
+	vector<Rect> vertEdges;
+	vertEdges.push_back(Rect((_frameSize.width * 0.5) - 5, 0, 10, _frameSize.height * TOP_AND_BOTTOM_CLIPS));
+	vertEdges.push_back(Rect((_frameSize.width * 0.5) - 10, _frameSize.height - (1-TOP_AND_BOTTOM_CLIPS), 10, _frameSize.height * TOP_AND_BOTTOM_CLIPS));
+
 	//Make sure there's actually a frame to do something with
 	if (im.empty())
 	{
@@ -44,21 +49,24 @@ int FishTracker::update(Mat& im, int& fishIncrement, int& fishDecrement, vector<
 	for (int i = _fishTracker.size() - 1; i >= 0; i--) 
 	{
 		//Update ROI from tracking			********** CHANGE FOLLOWING LINE FOR TRACKER IF NEED BE **************
-		_fishTracker[i].isTracked = _fishTracker[i].tracker->update(im, _fishTracker[i].roi);
-		
+		{
+			scoped_lock trackerLock(_trackerLock);
+			_fishTracker[i]->isTracked = _fishTracker[i]->tracker->update(im, _fishTracker[i]->roi);
+		}
+
 		//Make sure we aren't detecting the same object twice
 		for (int j = _fishTracker.size() - 1; j > i; j--)
 		{
 			bool isOverlapped = false;
 
-			Rect rect1 = _fishTracker[i].roi;
-			Rect rect2 = _fishTracker[j].roi;
+			Rect rect1 = _fishTracker[i]->roi;
+			Rect rect2 = _fishTracker[j]->roi;
 			
 			int area1 = rect1.area();
 			int area2 = rect2.area();
 
 			// Check if one is inside the other
-			if(_fishTracker[i].isCounted || _fishTracker[j].isCounted)
+			if(_fishTracker[i]->isCounted || _fishTracker[j]->isCounted)
 			{
 				isOverlapped |= (rect1 & rect2).area() >= area1 * 0.9;
 				isOverlapped |= (rect1 & rect2).area() >= area2 * 0.9;
@@ -76,7 +84,7 @@ int FishTracker::update(Mat& im, int& fishIncrement, int& fishDecrement, vector<
 		}
 		
 		//Move onto next iteration if cannot be detected anymore
-		if (!_fishTracker[i].isTracked)
+		if (!_fishTracker[i]->isTracked)
 		{
 			continue;	
 		}									
@@ -91,33 +99,34 @@ int FishTracker::update(Mat& im, int& fishIncrement, int& fishDecrement, vector<
 	//Must go backwards else this algorithm will actually skip elements	
 	for (int i = _fishTracker.size() - 1; i >= 0; i--) 
 	{	
-		
-		_fishTracker[i].currentTime = millis() - _fishTracker[i].startTime;
-		bool trackedObjectOutdated = _fishTracker[i].currentTime > TRACKER_TIMEOUT_MILLIS;
+		_fishTracker[i]->currentTime = millis() - _fishTracker[i]->startTime;
+		bool trackedObjectOutdated = _fishTracker[i]->currentTime > TRACKER_TIMEOUT_MILLIS;
 
 		//Delete if timeout and not in center
-		if (trackedObjectOutdated) // && !(_frameMiddle > _fishTracker[i].roi.x && _frameMiddle < _fishTracker[i].roi.x + _fishTracker[i].roi.width))
+		if (trackedObjectOutdated) // && !(_frameMiddle > _fishTracker[i]->roi.x && _frameMiddle < _fishTracker[i]->roi.x + _fishTracker[i]->roi.width))
 		{
 			_fishTracker.erase(_fishTracker.begin() + i);
 			continue; // Move onto next iteration
 		}
 
-		bool trackObjectOudatedCenter = _fishTracker[i].currentTime > TRACKER_TIMEOUT_MILLIS_CENTER;
+		bool trackObjectOudatedCenter = _fishTracker[i]->currentTime > TRACKER_TIMEOUT_MILLIS_CENTER;
 		
-		if (!_fishTracker[i].isTracked)
+		if (!_fishTracker[i]->isTracked)
 		{	
 			//Count amount of frames the fish has been lost for
-			_fishTracker[i].lostFrameCount++;
+			_fishTracker[i]->lostFrameCount++;
 				
 			//See if the item is just on the edge
 			bool isOnEdge = false;
 			
 			for (auto edge : edges) 
 			{
-				isOnEdge |= (edge & _fishTracker[i].roi).area() > 0;
+				isOnEdge |= (edge & _fishTracker[i]->roi).area() > 0;
 			}		
+
+			bool isWeirdCenter = (_fishTracker[i]->roi & vertEdges[0]).area() && (_fishTracker[i]->roi & vertEdges[1]).area();
 									
-			if (_fishTracker[i].lostFrameCount >= _retrackFrames || (isOnEdge && _fishTracker[i].currentTime > 2000))
+			if (_fishTracker[i]->lostFrameCount >= _retrackFrames || (isOnEdge && _fishTracker[i]->currentTime > 2000) || isWeirdCenter)
 			{
 				//After trying to retrack a while, element cannot be found so it should be removed from overall vector list
 				_fishTracker.erase(_fishTracker.begin() + i);
@@ -127,7 +136,7 @@ int FishTracker::update(Mat& im, int& fishIncrement, int& fishDecrement, vector<
 		else
 		{
 			//Reset if fish has been found again
-			_fishTracker[i].lostFrameCount = 0;
+			_fishTracker[i]->lostFrameCount = 0;
 		}
 	}
 	
@@ -137,15 +146,15 @@ int FishTracker::update(Mat& im, int& fishIncrement, int& fishDecrement, vector<
 		//Following script sees if the fish has passed through the midpoint, and from which side
 		//If it passes from left to right, we increase the ball counter. If the other way, we decrease
 		//Additionally, some code has been put in to make sure we aren't counting vector additions from multiple runs
-		_fishTracker[i].posX.push_back(_fishTracker[i].roi.x + _fishTracker[i].roi.width / 2);				
+		_fishTracker[i]->posX.push_back(_fishTracker[i]->roi.x + _fishTracker[i]->roi.width / 2);				
 					
-		if (_fishTracker[i].posX.size() >= 2)
+		if (_fishTracker[i]->posX.size() >= 2)
 		{
-			int posCurr = _fishTracker[i].posX[1];
-			int posLast = _fishTracker[i].posX[0];
+			int posCurr = _fishTracker[i]->posX[1];
+			int posLast = _fishTracker[i]->posX[0];
 
 			//If the fish is in the middle, we don't want to count it
-			if(_fishTracker[i].isCounted)
+			if(_fishTracker[i]->isCounted)
 			{
 				continue;
 			}
@@ -153,30 +162,41 @@ int FishTracker::update(Mat& im, int& fishIncrement, int& fishDecrement, vector<
 			if (posCurr > _frameMiddle && posLast <= _frameMiddle)
 			{
 				fishIncrement++;	
-				_fishTracker[i].isCounted=true;
+				_fishTracker[i]->isCounted=true;
 				continue;				
 			}
 			else if (posCurr < _frameMiddle && posLast >= _frameMiddle)
 			{
 				fishDecrement++;	
-				_fishTracker[i].isCounted=true;
+				_fishTracker[i]->isCounted=true;
 				continue;
 			}
 			
 			//Delete unnecessary position values
-			_fishTracker[i].posX.erase(_fishTracker[i].posX.begin());
+			_fishTracker[i]->posX.erase(_fishTracker[i]->posX.begin());
 		}			
 	}
 
 	//Copy rects from fishTracker vector to parent class
 	trackedObjects.clear();
-	trackedObjects = _fishTracker;
+
+	for (auto &fish : _fishTracker)
+	{
+		TrackedObjectData tempStruct;
+
+		{
+			tempStruct.roi = fish->roi;
+			tempStruct.currentTime = fish->currentTime;
+		}
+
+		trackedObjects.push_back(tempStruct);
+	}
 
 	return 0;
 }
 
 int FishTracker::generate(Mat& im, vector<FishMLData>& detectedObjects)
-{		
+{	
 	//First, get edges for comparison at multiple times through loop
 	vector<Rect> edges;
 	edges.push_back(Rect(0, 0, _frameSize.width * _marginProportion, _frameSize.height)); // left edge
@@ -184,6 +204,11 @@ int FishTracker::generate(Mat& im, vector<FishMLData>& detectedObjects)
 	edges.push_back(Rect(0, _frameSize.height - 2, _frameSize.width, 2)); // bottom edge
 	edges.push_back(Rect(0, 0, _frameSize.width, 2)); // top edge
 	
+	//These are to get rid of the ROIs that seem to pop up out of nowhere in the center
+	vector<Rect> vertEdges;
+	vertEdges.push_back(Rect((_frameSize.width * 0.5) - 5, 0, 10, _frameSize.height * TOP_AND_BOTTOM_CLIPS));
+	vertEdges.push_back(Rect((_frameSize.width * 0.5) - 10, _frameSize.height - (1-TOP_AND_BOTTOM_CLIPS), 10, _frameSize.height * TOP_AND_BOTTOM_CLIPS));
+
 	//Make sure there's actually a frame to do something with
 	if (im.empty())
 	{
@@ -215,8 +240,16 @@ int FishTracker::generate(Mat& im, vector<FishMLData>& detectedObjects)
 					
 		//See if this contour rectangle is an object that's already been detected
 		bool fishOverlappedROIs = false; // Turns true if the contour rect overlaps with one of the fishTracker rois
-		for (auto& fish : _fishTracker)
+		
+		//Iterate through _fishTracker vector
+		for (auto &fish : _fishTracker)
 		{	
+			//Make sure not null
+			if(!fish.get())
+			{
+				continue;
+			}
+
 			//Checks for overlap and stores result
 			//fishOverlappedROIs |= ((obj.ROI & fish.roi).area() > _minCombinedRectArea);
 
@@ -224,48 +257,49 @@ int FishTracker::generate(Mat& im, vector<FishMLData>& detectedObjects)
 			//fishOverlappedROIs |= (obj.ROI & fish.roi).area() >= min(obj.ROI.area(), fish.roi.area()) * _minCombinedRectAreaProportion;
 
 			//Now check whether the contour rect is within the roi
-			if(fish.isCounted)
+			if(fish->isCounted)
 			{
-				fishOverlappedROIs |= (obj.ROI & fish.roi).area() >= obj.ROI.area() * 0.6;
-				fishOverlappedROIs |= (obj.ROI & fish.roi).area() >= fish.roi.area() * 0.6;
+				fishOverlappedROIs |= (obj.ROI & fish->roi).area() >= obj.ROI.area() * 0.6;
+				fishOverlappedROIs |= (obj.ROI & fish->roi).area() >= fish->roi.area() * 0.6;
 			}
 			else
 			{
-				fishOverlappedROIs |= (obj.ROI & fish.roi).area() >= obj.ROI.area() * 0.3;
-				fishOverlappedROIs |= (obj.ROI & fish.roi).area() >= fish.roi.area() * 0.3;
+				fishOverlappedROIs |= (contourRectROI & fish->roi).area() >= contourRectROI.area() * 0.6;
+				fishOverlappedROIs |= (contourRectROI & fish->roi).area() >= fish->roi.area() * 0.6;
 			}
-
-			//Can exit loop if there's been an overlap
-			if (fishOverlappedROIs)
-			{
-				break;
-			}					
 		}
-			
+	
 		//Now see if a tracker has been lost, and if a widened area (by a reasonable amount) overlaps with the contour
 		//If so, then have that specific tracker "re-track" with the contour
 		bool fishRetracked = false;
 		for (auto& fish : _fishTracker)
 		{
-			
+			//Make sure not null
+			if (!fish.get())
+			{
+				continue;
+			}
+
 			//Skip iteration if tracker hasn't been lost
-			if (fish.isTracked)
+			if (fish->isTracked)
 			{ 
 				continue;
 			}
 				
 			//Make wider ROI to account for moving ball
-			Rect newFishROI = Rect(fish.roi.x - _retrackPixels, fish.roi.y - _retrackPixels, fish.roi.width + _retrackPixels * 2, fish.roi.height + _retrackPixels * 2);
+			Rect newFishROI = Rect(fish->roi.x - _retrackPixels, fish->roi.y - _retrackPixels, fish->roi.width + _retrackPixels * 2, fish->roi.height + _retrackPixels * 2);
 			
 			if ((obj.ROI & newFishROI).area() > _minCombinedRectArea)
 			{
 				fishRetracked = true;	
-				fish.isTracked = true;
+				fish->isTracked = true;
 					
 				//Re-initialize the tracker with the new coordinates
-				fish.tracker = TrackerKCF::create(_params);
-				fish.tracker->init(im, contourRectROI);
-				
+				{			
+					scoped_lock trackerLock(_trackerLock);
+					fish->tracker = TrackerKCF::create(_params);
+					fish->tracker->init(im, contourRectROI);
+				}
 				break;
 			}
 		}
@@ -282,6 +316,12 @@ int FishTracker::generate(Mat& im, vector<FishMLData>& detectedObjects)
 			continue;
 		}
 
+		if((vertEdges[0] & obj.ROI).area() && (vertEdges[1] & obj.ROI).area())
+		{
+			cout << "Artifact ROI" << endl;
+			continue;
+		}
+
 		//Make rect mostly in center of screen, from top of screen to bottom
 		Rect centerRect = Rect(_frameSize.width * 0.4, 0, _frameSize.width * 0.2, _frameSize.height);
 		bool isCenter = (obj.ROI & centerRect).area() > 0;
@@ -290,19 +330,22 @@ int FishTracker::generate(Mat& im, vector<FishMLData>& detectedObjects)
 		if (!fishOverlappedROIs && !fishRetracked && isCenter)
 		{									
 			//Initialize struct that keeps track of the tracking info
-			FishTrackerStruct tempTracker;					
-			tempTracker.isTracked = true;
-			tempTracker.tracker = TrackerKCF::create(_params);					
-			tempTracker.tracker->init(im, contourRectROI);
-			tempTracker.roi = contourRectROI;
-			tempTracker.posX.push_back(contourRectROI.x + contourRectROI.width / 2);
-			tempTracker.lostFrameCount = 0;
-			tempTracker.startTime = millis();
-			tempTracker.currentTime = millis() - tempTracker.startTime;
-			tempTracker.isCounted = false;
-				
+			auto tempTracker = std::make_unique<FishTrackerStruct>();
+					
+			tempTracker->isTracked = true;
+			tempTracker->tracker = TrackerKCF::create(_params);					
+			tempTracker->tracker->init(im, contourRectROI);
+			tempTracker->roi = contourRectROI;
+			tempTracker->posX.push_back(contourRectROI.x + contourRectROI.width / 2);
+			tempTracker->lostFrameCount = 0;
+			tempTracker->startTime = millis();
+			tempTracker->currentTime = millis() - tempTracker->startTime;
+			tempTracker->isCounted = false;
+			
+			scoped_lock trackerLock(_trackerLock);
+
 			//Now add that to the overall fish tracker
-			_fishTracker.push_back(tempTracker);	
+			_fishTracker.push_back(std::move(tempTracker));	
 		}
 	}
 	
@@ -352,9 +395,9 @@ int FishTracker::init(Size frameSize)
 	
 	//Some tracker stuff
 	_params = TrackerKCF::Params();
-	_params.sigma = 0.4f;
-	_params.detect_thresh = 0.3f;
-	_params.resize = true;
+	_params.sigma = 0.1f;
+	_params.detect_thresh = 0.4f;
+	_params.resize = false;
 	return 0;
 }
 
@@ -370,9 +413,9 @@ vector<Rect> FishTracker::_getRects()
 	//Since the rects are embedded in structs, need to extract them into separate vector
 	vector<Rect> tempRects;
 	
-	for (auto fish : _fishTracker)
+	for (auto &fish : _fishTracker)
 	{
-		tempRects.push_back(fish.roi);
+		tempRects.push_back(fish->roi);
 	}
 	
 	return tempRects;

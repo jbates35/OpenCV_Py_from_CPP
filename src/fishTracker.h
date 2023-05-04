@@ -22,7 +22,7 @@ using namespace std;
 #define DEFAULT_COMBINED_RECT_AREA 500
 
 //Default region of ROI 
-#define DEFAULT_RECT_SCALE 0.9
+#define DEFAULT_RECT_SCALE 0.6
 
 //Proportional margin of the camera frame that will be 
 #define DEFAULT_MARGIN 0.05
@@ -78,6 +78,9 @@ namespace _ft
 
 	//Default area of combined rect before it's considered "overlapping"
 	const int DEFAULT_COMBINED_RECT_AREA_PROPORTION = 0.3;
+
+	//Disregard ROIs that reach both the top and bottom 0.2 of the shot.
+	const int TOP_AND_BOTTOM_CLIPS = 0.2;
 		
 	//Struct keeping track of parameters of fish
 	struct FishTrackerStruct
@@ -90,14 +93,15 @@ namespace _ft
 		double startTime;
 		double currentTime;
 		bool isCounted;
+		std::mutex lock;
 	};
 
-	//Struct for passing additional mats
-	struct returnMatsStruct
+	//Sorry for confusing name
+	//This one is for the parent class, of which we don't need the actual tracker passed down to
+	struct TrackedObjectData
 	{
-		string title;
-		Mat mat;
-		imgMode colorMode;
+		double currentTime;
+		Rect roi;
 	};
 }
 
@@ -131,7 +135,7 @@ public:
 	 * @param fishDecrement Amount of fish counted to be decrement
 	 * @param trackedObjects Vector of tracked objects from parent class
 	*/
-	int update(Mat &im, int &fishIncrement, int &fishDecrement, vector<FishTrackerStruct> &trackedObjects);
+	int update(Mat &im, int &fishIncrement, int &fishDecrement, vector<TrackedObjectData> &trackedObjects);
 
     /**
      * @brief Takes the identified fish and generates new tracking objects
@@ -261,8 +265,6 @@ public:
 	 ** @param isTesting true for testing, false to turn testing off
 	 ***/
 	void setTesting(bool isTesting);
-
-	vector<FishTrackerStruct> getFishTracker() { return _fishTracker; }
 	
 private:
 	////////// PARAMETERS ///////////
@@ -279,7 +281,9 @@ private:
 	
 	//Parameters for tracking
 	TrackerKCF::Params _params;
-	vector<FishTrackerStruct> _fishTracker; //Holds all tracked object information
+	
+	std::vector<std::unique_ptr<FishTrackerStruct>> _fishTracker; //Holds all tracked object information
+
 	float _marginProportion; //Ess	entially, percentage margins should be set to to consider object "on the edge"
 	int _retrackPixels; //When occlusion occurs, what size of area around the ROI to look for an untracked object
 	int _retrackFrames; //When an object has been lost, how many frames to keep looking for the object before deleting object from vector
@@ -296,8 +300,10 @@ private:
 	//Other important data
 	ftMode _programMode;
 
-	/////////// FUNCTIONS /////////////
+	std::mutex _trackerLock;
+	std::mutex _vectorLock;
 
+	/////////// FUNCTIONS /////////////
 	vector<Rect> _getRects();
 	
 };
