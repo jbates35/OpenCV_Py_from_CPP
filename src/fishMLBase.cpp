@@ -114,8 +114,8 @@ int fishMLBase::init()
     _fishTimers["draw"] = millis();
     _fishTimers["update"] = millis();
 
-    // thread updateThread(_updateThread, this);   
-    // updateThread.detach();
+    thread updateThread(_updateThread, this);   
+    updateThread.detach();
    
     return 0;
 
@@ -133,33 +133,28 @@ int fishMLBase::run()
         drawThread.detach();
     }
 
-    if (millis() - _fishTimers["update"] > (double) 1000.0/UPDATE_FPS)
-    {
-        _fishTimers["update"] = millis();
-
-        thread trackerThread(_trackerUpdateThread, this);
-        trackerThread.detach();
-
-        thread MLThread (_MLUpdateThread, this);
-        MLThread.detach();
-    }
-
     return 0;
 }
 
 int fishMLBase::_update()
 {
-    double localTimer = millis();
+    // double localTimer = millis();
 	while(1)
 	{
-        cout << "Loop time: " << millis() - localTimer << endl;
-        localTimer = millis();
+    //     cout << "Loop time: " << millis() - localTimer << endl;
+    //     localTimer = millis();
 
-        thread trackerThread(_trackerUpdateThread, this);
-        trackerThread.detach();
+        if (millis() - _fishTimers["update"] > (double) 1000.0/UPDATE_FPS)
+        {
+            _fishTimers["update"] = millis();
 
-        thread MLThread (_MLUpdateThread, this);
-        MLThread.detach();
+            thread trackerThread(_trackerUpdateThread, this);
+            trackerThread.detach();
+
+            thread MLThread (_MLUpdateThread, this);
+            MLThread.detach();
+        }
+
 
         // _trackerUpdate();
         // _MLUpdate();
@@ -206,7 +201,6 @@ int fishMLBase::_getFrame()
         else
         {
             cout << "Frame skipped" << endl;
-            //if (_testMode == TestMode::ON) cout << "Frame skipped" << endl;
         }
     }
     _trackerCanRun = true;
@@ -255,9 +249,13 @@ void fishMLBase::_draw()
     {
         string rectPos = "Pos: <" + to_string(obj.ROI.x) + ", " + to_string(obj.ROI.y) + ">";
         string score = "Score: " + to_string(obj.score);
+        string rectArea = "Area: " + to_string(obj.ROI.area());
+
         cv::rectangle(frameDraw, obj.ROI, Scalar(200, 90, 185), 1);
+        
         cv::putText(frameDraw, score, Point(obj.ROI.x + 5, obj.ROI.y + 15), FONT_HERSHEY_SIMPLEX, 0.3, Scalar(155, 255, 255), 1);
         cv::putText(frameDraw, rectPos, Point(obj.ROI.x + 5, obj.ROI.y + 30), FONT_HERSHEY_SIMPLEX, 0.3, Scalar(155, 255, 255), 1);
+        cv::putText(frameDraw, rectArea, Point(obj.ROI.x + 5, obj.ROI.y + 45), FONT_HERSHEY_SIMPLEX, 0.3, Scalar(155, 255, 255), 1);
     }
 
     for (auto fish : localTrackedData)
@@ -332,8 +330,10 @@ void fishMLBase::_trackerUpdate()
     {
         return;
     }
-
-    cout << "Tracker loop time: " << millis() -  _fishTimers["Tracker"] << "ms" << endl;
+    
+    if(_testMode == TestMode::ON)
+        cout << "Tracker loop time: " << millis() -  _fishTimers["Tracker"] << "ms" << endl;
+        
     _fishTimers["Tracker"] = millis();
 
     // Copy parameters to local variables to avoid problems in concurrency
@@ -408,8 +408,10 @@ void fishMLBase::_MLUpdate()
     {
         return;
     }
-
-    cout << "ML update loop time: " << millis() -  _fishTimers["ML"] << "ms" << endl;
+    
+    if(_testMode == TestMode::ON)
+        cout << "ML update loop time: " << millis() -  _fishTimers["ML"] << "ms" << endl;
+    
     _fishTimers["ML"] = millis();
 
     // Copy parameters to local variables to avoid problems in concurrency
@@ -436,18 +438,6 @@ void fishMLBase::_MLUpdate()
     
     if (_testMode == TestMode::ON)
         cout << "Time to run fishML: " << millis() - _timer << "ms" << endl;
-
-    // if (_testMode == TestMode::ON)
-    //     _timer = millis();
-
-    // // Run fish tracker
-    // if (_fishTracker.generate(localFrame, localObjDetectData) < 0)
-    // {
-    //     if (_testMode == TestMode::ON) cout << "Error running fish tracker" << endl;
-    // }
-
-    // if (_testMode == TestMode::ON)
-    //     cout << "Time to generate fish trackers: " << millis() - _timer << "ms" << endl;
 
     // Store data back into class variable
     {

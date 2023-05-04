@@ -22,7 +22,7 @@ using namespace std;
 #define DEFAULT_COMBINED_RECT_AREA 500
 
 //Default region of ROI 
-#define DEFAULT_RECT_SCALE 0.75
+#define DEFAULT_RECT_SCALE 0.3
 
 //Proportional margin of the camera frame that will be 
 #define DEFAULT_MARGIN 0.05
@@ -66,6 +66,7 @@ enum class imgMode
 
 namespace _ft
 {		
+
 	//Max size of the vector that holds all the data, to prevent wildly large files
 	const int MAX_DATA_SIZE = 5000;
 	
