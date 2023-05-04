@@ -173,7 +173,7 @@ int FishMLWrapper::update(Mat &srcImg, vector<FishMLData> &objData)
       //If no ROIs were found, return 0
       if(tempObjData.size() == 1 && tempObjData[0].ROI.x == -1)
       {
-         return -1;
+         return 0;
       }
       
       //Success, dump ROIs
@@ -181,5 +181,5 @@ int FishMLWrapper::update(Mat &srcImg, vector<FishMLData> &objData)
    
    }
 
-   return 0;
+   return 1;
 }

@@ -14,6 +14,7 @@
 
 const int FRAME_MAX_HEIGHT = 300;
 const double DRAW_FPS = 30;
+const double UPDATE_FPS = 60;
 
 using namespace std;
 
@@ -52,13 +53,20 @@ private:
     void _draw();
     static void _drawThread(fishMLBase* fishMLBasePtr);
 
+    void _trackerUpdate();
+    static void _trackerUpdateThread(fishMLBase* fishMLBasePtr);
+
+    void _MLUpdate();
+    static void _MLUpdateThread(fishMLBase* fishMLBasePtr);
+
     FishMLWrapper _fishMLWrapper;
     vector<FishMLData> _objDetectData;
 
     map<string, double> _fishTimers;
 
-    mutex _frameMutex, _drawMutex, _trackerMutex, _updateMutex, _runMutex, _roiMutex, _throwawayMutex;
-
+    std::mutex _frameMutex, _drawMutex, _trackerMutex, _updateMutex, _runMutex, _roiMutex, _throwawayMutex;
+    std::mutex _singletonTracker, _singletonML, _singletonDraw;
+    
     Mat _frame, _framePrev;
     double _scaleFactor;
     VideoCapture _cap;
@@ -67,7 +75,7 @@ private:
     int _frameTotal;
 
     FishTracker _fishTracker;
-    vector<FishTrackerStruct> _trackedData;
+    vector<TrackedObjectData> _trackedData;
     vector<Rect> _detectedFishROI;
     int _fishIncremented;
     int _fishDecremented;
@@ -79,6 +87,7 @@ private:
 
     TestMode _testMode;
     VideoWriteMode _videoWriteMode;
+	vector<Mat> _videoRecordMats;
 
     Size _frameSize;
 
@@ -88,4 +97,6 @@ private:
 
     bool _updateRunning;
     bool _drawRunning;
+
+    bool _MLReady;
 };

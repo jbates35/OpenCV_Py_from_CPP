@@ -56,8 +56,9 @@ def fishML(mat):
         if testing:
             print ('x = ', obj.bbox.xmin, 'y = ', obj.bbox.ymin, 'w = ', obj.bbox.width, 'h = ', obj.bbox.height, 'score = ', obj.score)
             
-        if obj.score > 0.6:
-            xmin, ymin, xmax, ymax = obj.bbox    
+        if obj.score > 0.59:
+            xmin, ymin, xmax, ymax = obj.bbox
+            
             returnRects.append([
                 xmin + x, 
                 ymin + y, 
@@ -65,15 +66,14 @@ def fishML(mat):
                 (ymax-ymin),
                 obj.score
                 ]) 
-                
-    # Return the list of rois
-    return returnRects
+            
+    return returnRects  
 
 import time
 
 def play_video():
     cwd = os.getcwd()
-    cap = cv.VideoCapture(cwd + '/vid/griffin.mp4')
+    cap = cv.VideoCapture(cwd + '/vid/fish_dark_trimmed_2.mov')
 
     while (cap.isOpened()):
 
